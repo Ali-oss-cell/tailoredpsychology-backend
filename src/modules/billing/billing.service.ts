@@ -1,0 +1,72 @@
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+
+import type { AuthJwtPayload } from "../auth/interfaces/auth-jwt-payload.interface";
+import { InvoiceSummaryDto } from "./dto/invoice-summary.dto";
+
+type InvoiceSeed = InvoiceSummaryDto & { patientId: string; issuedAtIso: string; amountCents: number };
+
+@Injectable()
+export class BillingService {
+  private readonly invoices: InvoiceSeed[] = [
+    {
+      invoiceId: "INV-1042",
+      patientId: "user_patient_001",
+      issuedDate: "Oct 24, 2026",
+      issuedAtIso: "2026-10-24T00:00:00.000Z",
+      amountLabel: "$220.00",
+      amountCents: 22_000,
+      status: "Paid",
+    },
+    {
+      invoiceId: "INV-1031",
+      patientId: "user_patient_001",
+      issuedDate: "Oct 10, 2026",
+      issuedAtIso: "2026-10-10T00:00:00.000Z",
+      amountLabel: "$220.00",
+      amountCents: 22_000,
+      status: "Paid",
+    },
+    {
+      invoiceId: "INV-1020",
+      patientId: "user_patient_001",
+      issuedDate: "Sep 29, 2026",
+      issuedAtIso: "2026-09-29T00:00:00.000Z",
+      amountLabel: "$220.00",
+      amountCents: 22_000,
+      status: "Pending",
+    },
+  ];
+
+  listInvoicesForUser(user: AuthJwtPayload): InvoiceSummaryDto[] {
+    if (user.role !== "patient") {
+      throw new ForbiddenException("Only patients can access billing invoices");
+    }
+    return this.invoices
+      .filter((row) => row.patientId === user.sub)
+      .map(({ invoiceId, issuedDate, amountLabel, status }) => ({ invoiceId, issuedDate, amountLabel, status }));
+  }
+
+  getInvoiceDownload(user: AuthJwtPayload, invoiceId: string): { buffer: Buffer; fileName: string; contentType: string } {
+    if (user.role !== "patient") {
+      throw new ForbiddenException("Only patients can download invoices");
+    }
+    const invoice = this.invoices.find((row) => row.invoiceId === invoiceId && row.patientId === user.sub);
+    if (!invoice) {
+      throw new NotFoundException("Invoice not found");
+    }
+    const body = [
+      "Clink — Invoice (development document)",
+      `Invoice ID: ${invoice.invoiceId}`,
+      `Issued: ${invoice.issuedDate}`,
+      `Amount: ${invoice.amountLabel}`,
+      `Status: ${invoice.status}`,
+      "",
+      "This file is a placeholder download until PDF storage is integrated.",
+    ].join("\n");
+    return {
+      buffer: Buffer.from(body, "utf-8"),
+      fileName: `${invoice.invoiceId}.txt`,
+      contentType: "text/plain; charset=utf-8",
+    };
+  }
+}

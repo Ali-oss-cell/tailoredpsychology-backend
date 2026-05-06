@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model analytics_events {
+  event_id        String   @id
+  name            String
+  actor_user_id   String
+  actor_role      String
+  target_id       String
+  metadata        Json     @default("{}")
+  idempotency_key String?  @unique
+  occurred_at     DateTime @db.Timestamptz(6)
+
+  @@index([name, occurred_at], map: "analytics_events_name_occurred_idx")
+  @@index([target_id, occurred_at], map: "analytics_events_target_occurred_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model appointments {
+  appointment_id       String                 @id
+  patient_id           String
+  clinician_id         String
+  scheduled_start_at   DateTime               @db.Timestamptz(6)
+  scheduled_end_at     DateTime               @db.Timestamptz(6)
+  status               String
+  chat_window_open_at  DateTime               @db.Timestamptz(6)
+  chat_window_close_at DateTime               @db.Timestamptz(6)
+  chat_messages        chat_messages[]
+  chat_presence        chat_presence[]
+  telehealth_readiness telehealth_readiness[]
+
+  @@index([chat_window_open_at, chat_window_close_at], map: "appointments_chat_window_idx")
+  @@index([clinician_id, scheduled_start_at], map: "appointments_clinician_start_idx")
+  @@index([patient_id, scheduled_start_at], map: "appointments_patient_start_idx")
+}
+
+model audit_events {
+  event_id      String   @id
+  actor_user_id String
+  actor_role    String
+  action        String
+  target_type   String
+  target_id     String
+  metadata      Json     @default("{}")
+  occurred_at   DateTime @db.Timestamptz(6)
+
+  @@index([actor_user_id, occurred_at], map: "audit_events_actor_lookup_idx")
+  @@index([target_type, target_id, occurred_at], map: "audit_events_target_lookup_idx")
+}
+
+model booking_idempotency {
+  idempotency_key    String           @id
+  booking_request_id String
+  booking_requests   booking_requests @relation(fields: [booking_request_id], references: [booking_request_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model booking_requests {
+  booking_request_id   String                @id
+  patient_id           String
+  clinician_id         String
+  slot_id              String
+  appointment_date     DateTime              @db.Date
+  referral_document_id String                @default("")
+  timezone             String
+  notes                String                @default("")
+  state                String
+  created_at           DateTime              @db.Timestamptz(6)
+  updated_at           DateTime              @db.Timestamptz(6)
+  booking_idempotency  booking_idempotency[]
+
+  @@index([clinician_id, appointment_date, slot_id], map: "booking_requests_clinician_date_slot_idx")
+  @@index([patient_id, updated_at], map: "booking_requests_patient_updated_idx")
+  @@index([state, updated_at], map: "booking_requests_state_updated_idx")
+}
+
+model chat_messages {
+  message_id     String       @id
+  appointment_id String
+  author_user_id String
+  author_role    String
+  message        String
+  created_at     DateTime     @db.Timestamptz(6)
+  appointments   appointments @relation(fields: [appointment_id], references: [appointment_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([appointment_id, created_at], map: "chat_messages_appointment_created_idx")
+}
+
+model chat_presence {
+  appointment_id String
+  user_id        String
+  joined_at      DateTime     @db.Timestamptz(6)
+  appointments   appointments @relation(fields: [appointment_id], references: [appointment_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([appointment_id, user_id], map: "chat_presence_pk")
+  @@index([appointment_id, joined_at], map: "chat_presence_appointment_joined_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model intake_drafts {
+  patient_id    String    @id
+  draft_version Int
+  data          Json      @default("{}")
+  updated_at    DateTime  @db.Timestamptz(6)
+  committed_at  DateTime? @db.Timestamptz(6)
+
+  @@index([updated_at], map: "intake_drafts_updated_idx")
+}
+
+model intake_queue_assignments {
+  queue_item_id         String   @id
+  assigned_clinician_id String
+  updated_at            DateTime @db.Timestamptz(6)
+
+  @@index([assigned_clinician_id, updated_at], map: "intake_queue_assignments_clinician_updated_idx")
+}
+
+model notification_preferences {
+  user_id               String   @id
+  in_app_enabled        Boolean
+  booking_submitted     Boolean
+  booking_confirmed     Boolean
+  chat_window_open      Boolean
+  session_starting_soon Boolean
+  updated_at            DateTime @db.Timestamptz(6)
+}
+
+model notifications {
+  notification_id   String    @id
+  recipient_user_id String
+  recipient_role    String
+  type              String
+  title             String
+  body              String
+  metadata          Json      @default("{}")
+  read_at           DateTime? @db.Timestamptz(6)
+  created_at        DateTime  @db.Timestamptz(6)
+
+  @@index([recipient_user_id, created_at], map: "notifications_recipient_created_idx")
+  @@index([recipient_user_id, read_at, created_at], map: "notifications_unread_lookup_idx")
+}
+
+model patient_consents {
+  consent_id        String    @id
+  user_id           String
+  policy_version    String
+  accepted_at       DateTime  @default(now()) @db.Timestamptz(6)
+  withdrawn_at      DateTime? @db.Timestamptz(6)
+  withdrawal_reason String?
+  users             users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, accepted_at], map: "patient_consents_user_accepted_idx")
+  @@index([user_id, withdrawn_at], map: "patient_consents_user_withdrawn_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model patient_data_requests {
+  request_id           String    @id
+  patient_id           String
+  request_type         String
+  status               String    @default("submitted")
+  details              String
+  requested_correction String?
+  triage_owner_user_id String?
+  resolution_notes     String?
+  sla_due_at           DateTime  @db.Timestamptz(6)
+  triaged_at           DateTime? @db.Timestamptz(6)
+  resolved_at          DateTime? @db.Timestamptz(6)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([patient_id, updated_at], map: "idx_patient_data_requests_patient_updated_at")
+  @@index([status, updated_at], map: "idx_patient_data_requests_status_updated_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model patient_profiles {
+  user_id                        String   @id
+  phone_mobile                   String   @default("")
+  preferred_contact_method       String   @default("email")
+  accessibility_notes            String   @default("")
+  emergency_contact_name         String   @default("")
+  emergency_contact_phone        String   @default("")
+  emergency_contact_relationship String   @default("")
+  updated_at                     DateTime @default(now()) @db.Timestamptz(6)
+  users                          users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model pgmigrations {
+  id     Int      @id @default(autoincrement())
+  name   String   @db.VarChar(255)
+  run_on DateTime @db.Timestamp(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model psychologist_notes {
+  note_id         String    @id
+  psychologist_id String
+  patient_id      String
+  session_id      String
+  status          String
+  body            String    @default("")
+  signed_at       DateTime? @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([patient_id, updated_at], map: "psychologist_notes_patient_updated_idx")
+  @@index([psychologist_id, updated_at], map: "psychologist_notes_psychologist_updated_idx")
+}
+
+model psychologist_profile_bio {
+  psychologist_id   String   @id
+  bio               String   @default("")
+  updated_at        DateTime @default(now()) @db.Timestamptz(6)
+  profile_image_url String?
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model psychologist_profiles {
+  user_id             String   @id
+  registration_number String   @default("")
+  provider_number     String   @default("")
+  specialties         String[] @default([])
+  status              String   @default("active")
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+  users               users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model referral_documents {
+  document_id            String    @id
+  patient_id             String
+  status                 String
+  file_name              String
+  file_size              Int
+  mime_type              String
+  source_type            String?
+  referral_date          DateTime? @db.Date
+  notes                  String?
+  uploaded_at            DateTime  @db.Timestamptz(6)
+  due_at                 DateTime  @db.Timestamptz(6)
+  assigned_owner_user_id String?
+  reviewed_by            String?
+  reviewed_at            DateTime? @db.Timestamptz(6)
+  review_reason          String?
+  review_notes           String?
+
+  @@index([assigned_owner_user_id], map: "idx_referral_documents_assigned_owner")
+  @@index([due_at], map: "idx_referral_documents_due_at")
+  @@index([status, uploaded_at], map: "idx_referral_documents_status_uploaded_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model security_incidents {
+  incident_id            String    @id
+  title                  String
+  summary                String
+  severity               String
+  impact                 String
+  status                 String    @default("reported")
+  ndb_assessment         String    @default("assessment_in_progress")
+  contains_personal_data Boolean
+  assigned_owner_user_id String?
+  resolution_notes       String?
+  detected_at            DateTime  @db.Timestamptz(6)
+  created_at             DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime  @default(now()) @db.Timestamptz(6)
+  closed_at              DateTime? @db.Timestamptz(6)
+
+  @@index([severity, updated_at], map: "idx_security_incidents_severity_updated_at")
+  @@index([status, updated_at], map: "idx_security_incidents_status_updated_at")
+}
+
+model session_videos {
+  video_id         String   @id
+  session_id       String
+  patient_id       String
+  clinician_id     String
+  session_date     DateTime @db.Timestamptz(6)
+  download_url     String
+  transcript_ready Boolean  @default(false)
+
+  @@index([clinician_id, session_date], map: "session_videos_clinician_date_idx")
+  @@index([patient_id, session_date], map: "session_videos_patient_date_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model telehealth_readiness {
+  appointment_id String
+  user_id        String
+  overall_status String
+  checks         Json         @default("[]")
+  updated_at     DateTime     @db.Timestamptz(6)
+  appointments   appointments @relation(fields: [appointment_id], references: [appointment_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([appointment_id, user_id], map: "telehealth_readiness_pk")
+  @@index([appointment_id, updated_at], map: "telehealth_readiness_appointment_updated_idx")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  user_id                     String                 @id
+  email                       String
+  display_name                String
+  role                        String
+  password                    String
+  account_onboarding_complete Boolean                @default(false)
+  created_at                  DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime               @default(now()) @db.Timestamptz(6)
+  deleted_at                  DateTime?              @db.Timestamptz(6)
+  deletion_reason             String?
+  deleted_by_user_id          String?
+  legal_hold_active           Boolean                @default(false)
+  legal_hold_reason           String?
+  legal_hold_set_by_user_id   String?
+  legal_hold_set_at           DateTime?              @db.Timestamptz(6)
+  retention_until             DateTime?              @db.Timestamptz(6)
+  purged_at                   DateTime?              @db.Timestamptz(6)
+  last_interaction_at         DateTime?              @db.Timestamptz(6)
+  patient_consents            patient_consents[]
+  patient_profiles            patient_profiles?
+  psychologist_profiles       psychologist_profiles?
+
+  @@index([deleted_at])
+  @@index([legal_hold_active])
+  @@index([retention_until])
+}
