@@ -23,6 +23,8 @@ services:
     image: traefik:v3.2
     container_name: clink-traefik
     restart: unless-stopped
+    environment:
+      DOCKER_API_VERSION: "1.41"
     command:
       - --global.checknewversion=false
       - --global.sendanonymoususage=false
