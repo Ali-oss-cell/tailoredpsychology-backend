@@ -20,15 +20,14 @@ services:
       - edge
 
   traefik:
-    image: traefik:v3.2
+    image: traefik:v3.3
     container_name: clink-traefik
     restart: unless-stopped
-    environment:
-      DOCKER_API_VERSION: "1.41"
     command:
       - --global.checknewversion=false
       - --global.sendanonymoususage=false
       - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
