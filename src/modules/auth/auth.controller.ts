@@ -21,12 +21,18 @@ import type { AuthJwtPayload } from "./interfaces/auth-jwt-payload.interface";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  private getRoleCookieDomain(): string | undefined {
+    const domain = process.env.COOKIE_DOMAIN?.trim();
+    return domain && domain.length > 0 ? domain : undefined;
+  }
+
   private setRoleCookie(response: Response, role: string, maxAgeSeconds: number): void {
     response.cookie("clink_role", role, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      domain: this.getRoleCookieDomain(),
       maxAge: maxAgeSeconds * 1000,
     });
   }
@@ -66,6 +72,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      domain: this.getRoleCookieDomain(),
     });
     return this.authService.logout();
   }
