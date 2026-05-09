@@ -1,4 +1,24 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clink-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - edge
+
   traefik:
     image: traefik:v3.2
     container_name: clink-traefik
@@ -36,6 +56,9 @@ services:
       NODE_ENV: production
       PORT: 3001
       PUBLIC_BACKEND_URL: https://api.${BASE_DOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - edge
     labels:
@@ -70,6 +93,7 @@ services:
 
 volumes:
   traefik_letsencrypt:
+  postgres_data:
 
 networks:
   edge:

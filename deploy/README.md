@@ -1,6 +1,6 @@
 # Docker + Traefik Production Setup
 
-This stack runs both services behind Traefik with automatic Let's Encrypt HTTPS:
+This stack runs frontend + backend + PostgreSQL behind Traefik with automatic Let's Encrypt HTTPS:
 
 - Frontend: `https://tailoredpsychology.com.au`
 - Backend API: `https://api.tailoredpsychology.com.au`
@@ -33,7 +33,10 @@ Edit `.env` and set:
 - `BASE_DOMAIN`
 - `LETSENCRYPT_EMAIL`
 - `FRONTEND_PATH` (relative to this `deploy` directory)
-- `DATABASE_URL`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `DATABASE_URL` (default points to local `postgres` container)
 - `AUTH_JWT_SECRET`
 - optional Twilio and scheduler settings
 
@@ -54,6 +57,12 @@ Expected:
 
 - Frontend responds on `https://<BASE_DOMAIN>`
 - API responds on `https://api.<BASE_DOMAIN>/api/health`
+
+## Local Postgres notes
+
+- This setup persists database data in Docker volume `postgres_data`.
+- Keep `DATABASE_URL` as `...@postgres:5432/...` to use the local container.
+- If you ever move back to managed DB, just change `DATABASE_URL` to external host value.
 
 ## 4) Deploy updates
 
