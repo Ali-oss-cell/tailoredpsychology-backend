@@ -26,9 +26,8 @@ services:
     command:
       - --global.checknewversion=false
       - --global.sendanonymoususage=false
-      - --providers.docker=true
-      - --providers.docker.endpoint=unix:///var/run/docker.sock
-      - --providers.docker.exposedbydefault=false
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
@@ -40,7 +39,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
       - traefik_letsencrypt:/letsencrypt
     networks:
       - edge
@@ -62,12 +61,6 @@ services:
         condition: service_healthy
     networks:
       - edge
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.backend.rule=Host(`api.${BASE_DOMAIN}`)
-      - traefik.http.routers.backend.entrypoints=websecure
-      - traefik.http.routers.backend.tls.certresolver=letsencrypt
-      - traefik.http.services.backend.loadbalancer.server.port=3001
 
   frontend:
     build:
@@ -85,12 +78,6 @@ services:
       NEXT_PUBLIC_API_BASE_URL: https://api.${BASE_DOMAIN}/api
     networks:
       - edge
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`${BASE_DOMAIN}`) || Host(`www.${BASE_DOMAIN}`)
-      - traefik.http.routers.frontend.entrypoints=websecure
-      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.services.frontend.loadbalancer.server.port=3000
 
 volumes:
   traefik_letsencrypt:

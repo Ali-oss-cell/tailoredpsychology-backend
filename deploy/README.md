@@ -1,6 +1,8 @@
 # Docker + Traefik Production Setup
 
-This stack runs frontend + backend + PostgreSQL behind Traefik with automatic Let's Encrypt HTTPS:
+This stack runs frontend + backend + PostgreSQL behind Traefik with automatic Let's Encrypt HTTPS.
+
+Traefik uses a file-based routing config (`deploy/traefik/dynamic.yml`) to avoid Docker API compatibility issues on some hosts.
 
 - Frontend: `https://tailoredpsychology.com.au`
 - Backend API: `https://api.tailoredpsychology.com.au`

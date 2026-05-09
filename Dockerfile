@@ -18,4 +18,4 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 3001
-CMD ["sh", "-c", "npm run prisma:deploy && node dist/main.js"]
+CMD ["sh", "-c", "npm run prisma:deploy && node dist/src/main.js"]

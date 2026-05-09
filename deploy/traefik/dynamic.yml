@@ -1,0 +1,28 @@
+http:
+  routers:
+    frontend-router:
+      entryPoints:
+        - websecure
+      rule: Host(`tailoredpsychology.com.au`) || Host(`www.tailoredpsychology.com.au`)
+      service: frontend-service
+      tls:
+        certResolver: letsencrypt
+
+    backend-router:
+      entryPoints:
+        - websecure
+      rule: Host(`api.tailoredpsychology.com.au`)
+      service: backend-service
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: http://frontend:3000
+
+    backend-service:
+      loadBalancer:
+        servers:
+          - url: http://backend:3001
