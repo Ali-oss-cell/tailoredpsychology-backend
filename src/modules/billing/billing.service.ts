@@ -55,7 +55,7 @@ export class BillingService {
       throw new NotFoundException("Invoice not found");
     }
     const body = [
-      "Clink — Invoice (development document)",
+      "Tailored Psychology — Invoice (development document)",
       `Invoice ID: ${invoice.invoiceId}`,
       `Issued: ${invoice.issuedDate}`,
       `Amount: ${invoice.amountLabel}`,

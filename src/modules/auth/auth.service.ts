@@ -112,7 +112,7 @@ export class AuthService {
         recipientUserId: user.id,
         recipientRole: user.role,
         type: "account_welcome",
-        title: "Welcome to Clink",
+        title: "Welcome to Tailored Psychology",
         body: "Complete a few quick steps: confirm your profile, finish your intake in booking, then you can message your clinic from the dashboard when session chat is available.",
         metadata: { ctaPath: "/patient/dashboard?openNotifications=1" },
       });

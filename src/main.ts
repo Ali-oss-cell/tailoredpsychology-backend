@@ -21,8 +21,8 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle("Clink Backend API")
-    .setDescription("NestJS backend for Clink platform")
+    .setTitle("Tailored Psychology Backend API")
+    .setDescription("NestJS backend for the Tailored Psychology platform")
     .setVersion("1.0.0")
     .addBearerAuth()
     .build();
