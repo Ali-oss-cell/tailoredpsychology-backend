@@ -264,7 +264,8 @@ export class AuthService {
     };
   }
 
-  private getAccessTokenTtlSeconds(): number {
+  /** JWT access TTL; also used to align the HttpOnly `clink_role` cookie so Next.js middleware stays in sync. */
+  getAccessTokenTtlSeconds(): number {
     const ttl = this.configService.get<string>("AUTH_JWT_EXPIRES_IN") ?? "3600s";
     const numeric = Number(ttl.replace(/s$/i, ""));
     return Number.isFinite(numeric) ? numeric : 3600;

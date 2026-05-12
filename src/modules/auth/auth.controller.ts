@@ -21,6 +21,11 @@ import type { AuthJwtPayload } from "./interfaces/auth-jwt-payload.interface";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * When the browser UI is on `www.` (or apex) and the API on `api.`, this **must** be the shared parent
+   * domain (e.g. `.tailoredpsychology.com.au`). Otherwise `clink_role` is host-only on the API host and the
+   * Next.js app never receives it → middleware treats every visit as `guest` and redirects to `/login`.
+   */
   private getRoleCookieDomain(): string | undefined {
     const domain = process.env.COOKIE_DOMAIN?.trim();
     return domain && domain.length > 0 ? domain : undefined;
@@ -82,7 +87,12 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get profile from current bearer token" })
   @ApiOkResponse({ type: CurrentUserDto })
-  me(@CurrentUser() payload: AuthJwtPayload): Promise<CurrentUserDto> {
+  me(
+    @CurrentUser() payload: AuthJwtPayload,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<CurrentUserDto> {
+    // Refresh role cookie on activity so its Max-Age stays aligned with JWT TTL (helps multi-tab / www + api).
+    this.setRoleCookie(response, payload.role, this.authService.getAccessTokenTtlSeconds());
     return this.authService.getCurrentUser(payload.sub);
   }
 
