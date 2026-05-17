@@ -41,6 +41,7 @@ Edit `.env` and set:
 - `DATABASE_URL` (default points to local `postgres` container)
 - `AUTH_JWT_SECRET`
 - `COOKIE_DOMAIN` (set to `.yourdomain.com` so frontend + API subdomains can share role cookie)
+- `CORS_ORIGINS` (optional; comma-separated `https://` site origins — defaults from `BASE_DOMAIN` if omitted)
 - optional Twilio and scheduler settings
 
 ## 2) Start stack
