@@ -9,7 +9,8 @@ export class PatientJourneyTimelineStepDto {
     | "booking_confirmed"
     | "session_started"
     | "session_completed"
-    | "session_no_show";
+    | "session_no_show"
+    | "invoice_downloaded";
 
   @ApiProperty({ example: "done" })
   status!: "pending" | "done";

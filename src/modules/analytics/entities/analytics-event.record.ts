@@ -11,7 +11,8 @@ export type AnalyticsEventName =
   | "join_attempted"
   | "join_success"
   | "join_failed"
-  | "join_warned";
+  | "join_warned"
+  | "invoice_downloaded";
 
 export type AnalyticsEventRecord = {
   eventId: string;

@@ -13,13 +13,20 @@ import { LoginRequestDto } from "./dto/login-request.dto";
 import { RegisterRequestDto } from "./dto/register-request.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { WithdrawConsentDto } from "./dto/withdraw-consent.dto";
+import { ForgotPasswordRequestDto } from "./dto/forgot-password-request.dto";
+import { ForgotPasswordResponseDto } from "./dto/forgot-password-response.dto";
+import { ResetPasswordRequestDto } from "./dto/reset-password-request.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import type { AuthJwtPayload } from "./interfaces/auth-jwt-payload.interface";
+import { PasswordResetService } from "./password-reset.service";
 
 @ApiTags("auth")
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly passwordResetService: PasswordResetService,
+  ) {}
 
   /**
    * When the browser UI is on `www.` (or apex) and the API on `api.`, this **must** be the shared parent
@@ -58,6 +65,28 @@ export class AuthController {
     const session = await this.authService.register(dto);
     this.setRoleCookie(response, session.user.role, session.expiresInSeconds);
     return session;
+  }
+
+  @Post("forgot-password")
+  @ApiOperation({ summary: "Request a password reset link (always returns generic success message)" })
+  @ApiOkResponse({ type: ForgotPasswordResponseDto })
+  forgotPassword(@Body() dto: ForgotPasswordRequestDto): Promise<ForgotPasswordResponseDto> {
+    return this.passwordResetService.requestReset(dto.email);
+  }
+
+  @Post("reset-password")
+  @ApiOperation({ summary: "Complete password reset using token from email link" })
+  @ApiOkResponse({
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", example: "Password updated. You can sign in with your new password." },
+      },
+    },
+  })
+  async resetPassword(@Body() dto: ResetPasswordRequestDto): Promise<{ message: string }> {
+    await this.passwordResetService.completeReset(dto.token, dto.newPassword);
+    return { message: "Password updated. You can sign in with your new password." };
   }
 
   @Post("logout")

@@ -1,14 +1,17 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 
 import { buildMinimalPdf } from "../../common/minimal-pdf.util";
+import { AnalyticsService } from "../analytics/analytics.service";
+import { DatabaseService } from "../core/database.service";
 import type { AuthJwtPayload } from "../auth/interfaces/auth-jwt-payload.interface";
+import { PrismaService } from "../prisma/prisma.service";
 import { InvoiceSummaryDto } from "./dto/invoice-summary.dto";
 
 type InvoiceSeed = InvoiceSummaryDto & { patientId: string; issuedAtIso: string; amountCents: number };
 
 @Injectable()
 export class BillingService {
-  private readonly invoices: InvoiceSeed[] = [
+  private readonly seedInvoices: InvoiceSeed[] = [
     {
       invoiceId: "INV-1042",
       patientId: "user_patient_001",
@@ -38,23 +41,131 @@ export class BillingService {
     },
   ];
 
-  listInvoicesForUser(user: AuthJwtPayload): InvoiceSummaryDto[] {
-    if (user.role !== "patient") {
-      throw new ForbiddenException("Only patients can access billing invoices");
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly prisma: PrismaService,
+    private readonly analyticsService: AnalyticsService,
+  ) {}
+
+  private formatAmount(cents: number): string {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
+
+  private formatIssuedDate(iso: string): string {
+    return new Date(iso).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
+  private async ensurePatientInvoiceSeeds(patientId: string): Promise<void> {
+    if (!this.databaseService.isEnabled()) {
+      return;
     }
-    return this.invoices
-      .filter((row) => row.patientId === user.sub)
+    const count = await this.prisma.patient_invoices.count({ where: { patient_id: patientId } });
+    if (count > 0) {
+      return;
+    }
+    const seeds = this.seedInvoices.filter((row) => row.patientId === patientId);
+    if (seeds.length === 0) {
+      return;
+    }
+    await this.prisma.patient_invoices.createMany({
+      data: seeds.map((row) => ({
+        invoice_id: row.invoiceId,
+        patient_id: row.patientId,
+        issued_at: new Date(row.issuedAtIso),
+        amount_cents: row.amountCents,
+        status: row.status,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  private async listFromDatabase(patientId: string): Promise<InvoiceSummaryDto[]> {
+    await this.ensurePatientInvoiceSeeds(patientId);
+    const rows = await this.prisma.patient_invoices.findMany({
+      where: { patient_id: patientId },
+      orderBy: { issued_at: "desc" },
+    });
+    return rows.map((row) => ({
+      invoiceId: row.invoice_id,
+      issuedDate: this.formatIssuedDate(row.issued_at.toISOString()),
+      amountLabel: this.formatAmount(row.amount_cents),
+      status: row.status,
+    }));
+  }
+
+  private listFromMemory(patientId: string): InvoiceSummaryDto[] {
+    return this.seedInvoices
+      .filter((row) => row.patientId === patientId)
       .map(({ invoiceId, issuedDate, amountLabel, status }) => ({ invoiceId, issuedDate, amountLabel, status }));
   }
 
-  getInvoiceDownload(user: AuthJwtPayload, invoiceId: string): { buffer: Buffer; fileName: string; contentType: string } {
+  private async resolveInvoice(
+    patientId: string,
+    invoiceId: string,
+  ): Promise<{ invoiceId: string; issuedDate: string; amountLabel: string; status: string } | null> {
+    if (this.databaseService.isEnabled()) {
+      await this.ensurePatientInvoiceSeeds(patientId);
+      const row = await this.prisma.patient_invoices.findFirst({
+        where: { invoice_id: invoiceId, patient_id: patientId },
+      });
+      if (!row) {
+        return null;
+      }
+      return {
+        invoiceId: row.invoice_id,
+        issuedDate: this.formatIssuedDate(row.issued_at.toISOString()),
+        amountLabel: this.formatAmount(row.amount_cents),
+        status: row.status,
+      };
+    }
+    const seed = this.seedInvoices.find((row) => row.invoiceId === invoiceId && row.patientId === patientId);
+    if (!seed) {
+      return null;
+    }
+    return {
+      invoiceId: seed.invoiceId,
+      issuedDate: seed.issuedDate,
+      amountLabel: seed.amountLabel,
+      status: seed.status,
+    };
+  }
+
+  async listInvoicesForUser(user: AuthJwtPayload): Promise<InvoiceSummaryDto[]> {
+    if (user.role !== "patient") {
+      throw new ForbiddenException("Only patients can access billing invoices");
+    }
+    if (this.databaseService.isEnabled()) {
+      return this.listFromDatabase(user.sub);
+    }
+    return this.listFromMemory(user.sub);
+  }
+
+  async getInvoiceDownload(
+    user: AuthJwtPayload,
+    invoiceId: string,
+  ): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
     if (user.role !== "patient") {
       throw new ForbiddenException("Only patients can download invoices");
     }
-    const invoice = this.invoices.find((row) => row.invoiceId === invoiceId && row.patientId === user.sub);
+    const invoice = await this.resolveInvoice(user.sub, invoiceId);
     if (!invoice) {
       throw new NotFoundException("Invoice not found");
     }
+
+    await this.analyticsService.recordEvent({
+      name: "invoice_downloaded",
+      actorUserId: user.sub,
+      actorRole: user.role,
+      targetId: user.sub,
+      idempotencyKey: `invoice_downloaded:${invoiceId}:${user.sub}`,
+      metadata: { invoiceId },
+    });
+
     const lines = [
       "Tailored Psychology",
       "Tax invoice / receipt",

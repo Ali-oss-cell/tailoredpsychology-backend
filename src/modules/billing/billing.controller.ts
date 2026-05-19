@@ -18,7 +18,7 @@ export class BillingController {
   @Get("invoices")
   @ApiOperation({ summary: "List invoices for the authenticated patient" })
   @ApiOkResponse({ type: [InvoiceSummaryDto] })
-  listInvoices(@CurrentUser() user: AuthJwtPayload): InvoiceSummaryDto[] {
+  listInvoices(@CurrentUser() user: AuthJwtPayload): Promise<InvoiceSummaryDto[]> {
     return this.billingService.listInvoicesForUser(user);
   }
 
@@ -26,12 +26,12 @@ export class BillingController {
   @ApiOperation({ summary: "Download invoice as PDF" })
   @ApiProduces("application/pdf")
   @Header("Cache-Control", "no-store")
-  downloadInvoice(
+  async downloadInvoice(
     @CurrentUser() user: AuthJwtPayload,
     @Param("invoiceId") invoiceId: string,
     @Res() res: Response,
-  ): void {
-    const { buffer, fileName, contentType } = this.billingService.getInvoiceDownload(user, invoiceId);
+  ): Promise<void> {
+    const { buffer, fileName, contentType } = await this.billingService.getInvoiceDownload(user, invoiceId);
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.send(buffer);

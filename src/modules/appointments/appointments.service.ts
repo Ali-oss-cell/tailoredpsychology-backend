@@ -1078,6 +1078,12 @@ export class AppointmentsService {
       { key: "session_started", label: "Session started", occurredAt: findOccurredAt("session_started"), status: "pending" },
       { key: "session_completed", label: "Session completed", occurredAt: findOccurredAt("session_completed"), status: "pending" },
       { key: "session_no_show", label: "Session no-show", occurredAt: findOccurredAt("session_no_show"), status: "pending" },
+      {
+        key: "invoice_downloaded",
+        label: "Invoice downloaded",
+        occurredAt: findOccurredAt("invoice_downloaded"),
+        status: "pending",
+      },
     ] as const;
 
     const normalizedSteps: PatientJourneyTimelineDto["steps"] = steps.map((step) => ({

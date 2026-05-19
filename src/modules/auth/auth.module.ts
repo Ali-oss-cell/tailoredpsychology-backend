@@ -15,6 +15,7 @@ import { AdminOpsController } from "./admin-ops.controller";
 import { PatientDataRequestsController } from "./patient-data-requests.controller";
 import { AuthService } from "./auth.service";
 import { ConsentLifecycleService } from "./consent-lifecycle.service";
+import { PasswordResetService } from "./password-reset.service";
 import { PatientDataRequestsService } from "./patient-data-requests.service";
 import { PatientsMeProfileController } from "./patients-me-profile.controller";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
@@ -47,7 +48,14 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     AdminOpsController,
     PatientDataRequestsController,
   ],
-  providers: [AuthService, ConsentLifecycleService, PatientDataRequestsService, JwtStrategy, JwtAuthGuard],
+  providers: [
+    AuthService,
+    ConsentLifecycleService,
+    PasswordResetService,
+    PatientDataRequestsService,
+    JwtStrategy,
+    JwtAuthGuard,
+  ],
   exports: [AuthService, JwtAuthGuard],
 })
 export class AuthModule {}
