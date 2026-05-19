@@ -68,10 +68,35 @@ Expected:
 - Keep `DATABASE_URL` as `...@postgres:5432/...` to use the local container.
 - If you ever move back to managed DB, just change `DATABASE_URL` to external host value.
 
-## 4) Deploy updates
+## 4) Database migrations
+
+After schema changes (e.g. patient mood check-ins):
+
+```bash
+docker compose --env-file .env -f docker-compose.traefik.yml exec api npx prisma migrate deploy
+```
+
+## 5) Deploy updates
 
 After pulling new commits in backend/frontend:
 
 ```bash
 docker compose --env-file .env -f docker-compose.traefik.yml up -d --build
+docker compose --env-file .env -f docker-compose.traefik.yml exec api npx prisma migrate deploy
 ```
+
+## 6) Staging smoke (Wave 20)
+
+From the monorepo root on a machine that can reach staging:
+
+```bash
+API_BASE="https://api.tailoredpsychology.com.au/api" \
+WEB_BASE="https://tailoredpsychology.com.au" \
+CORS_ORIGIN="https://tailoredpsychology.com.au" \
+SMOKE_PATIENT_EMAIL="<patient>" \
+SMOKE_PATIENT_PASSWORD="<password>" \
+# ... psychologist, manager, admin as needed ...
+npm run smoke:wave20
+```
+
+See `frontend/docs/WAVE20_LAUNCH_CLOSURE_AND_STAGING.md` and `WAVE5_STAGING_SMOKE_PREP_CHECKLIST.md`.

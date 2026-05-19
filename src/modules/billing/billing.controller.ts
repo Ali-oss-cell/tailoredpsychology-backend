@@ -23,8 +23,8 @@ export class BillingController {
   }
 
   @Get("invoices/:invoiceId/download")
-  @ApiOperation({ summary: "Download invoice document (placeholder text file in current build)" })
-  @ApiProduces("text/plain")
+  @ApiOperation({ summary: "Download invoice as PDF" })
+  @ApiProduces("application/pdf")
   @Header("Cache-Control", "no-store")
   downloadInvoice(
     @CurrentUser() user: AuthJwtPayload,
