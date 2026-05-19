@@ -1115,6 +1115,20 @@ export class AppointmentsService {
   async getMoodCheckins(user: AuthJwtPayload, patientId: string, limit = 14): Promise<MoodCheckinsListResponseDto> {
     await this.assertPatientClinicalReadAccess(user, patientId);
     const cap = Math.min(Math.max(limit, 1), 100);
+    if (this.databaseService.isEnabled()) {
+      const rows = await this.prisma.patient_mood_checkins.findMany({
+        where: { patient_id: patientId },
+        orderBy: { created_at: "desc" },
+        take: cap,
+      });
+      return {
+        items: rows.map((row) => ({
+          id: row.checkin_id,
+          moodLabel: row.mood_label,
+          createdAt: row.created_at.toISOString(),
+        })),
+      };
+    }
     const list = [...(this.moodCheckins.get(patientId) ?? [])].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
@@ -1128,9 +1142,27 @@ export class AppointmentsService {
 
   async createMoodCheckin(user: AuthJwtPayload, patientId: string, dto: CreateMoodCheckinDto): Promise<MoodCheckinItemDto> {
     this.assertDraftWriteAccess(user, patientId);
+    const moodLabel = dto.moodLabel.trim();
+    const createdAt = new Date();
+    if (this.databaseService.isEnabled()) {
+      const id = `mood_${randomUUID()}`;
+      const row = await this.prisma.patient_mood_checkins.create({
+        data: {
+          checkin_id: id,
+          patient_id: patientId,
+          mood_label: moodLabel,
+          created_at: createdAt,
+        },
+      });
+      return {
+        id: row.checkin_id,
+        moodLabel: row.mood_label,
+        createdAt: row.created_at.toISOString(),
+      };
+    }
     const id = `mood_${`${this.moodCheckinCounter++}`.padStart(6, "0")}`;
-    const createdAt = new Date().toISOString();
-    const record: MoodCheckinRecord = { id, moodLabel: dto.moodLabel.trim(), createdAt };
+    const createdAtIso = createdAt.toISOString();
+    const record: MoodCheckinRecord = { id, moodLabel, createdAt: createdAtIso };
     const existing = this.moodCheckins.get(patientId) ?? [];
     this.moodCheckins.set(patientId, [record, ...existing]);
     return { id: record.id, moodLabel: record.moodLabel, createdAt: record.createdAt };
