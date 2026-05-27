@@ -23,6 +23,7 @@ const admin_ops_controller_1 = require("./admin-ops.controller");
 const patient_data_requests_controller_1 = require("./patient-data-requests.controller");
 const auth_service_1 = require("./auth.service");
 const consent_lifecycle_service_1 = require("./consent-lifecycle.service");
+const password_reset_service_1 = require("./password-reset.service");
 const patient_data_requests_service_1 = require("./patient-data-requests.service");
 const patients_me_profile_controller_1 = require("./patients-me-profile.controller");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
@@ -58,7 +59,14 @@ exports.AuthModule = AuthModule = __decorate([
             admin_ops_controller_1.AdminOpsController,
             patient_data_requests_controller_1.PatientDataRequestsController,
         ],
-        providers: [auth_service_1.AuthService, consent_lifecycle_service_1.ConsentLifecycleService, patient_data_requests_service_1.PatientDataRequestsService, jwt_strategy_1.JwtStrategy, jwt_auth_guard_1.JwtAuthGuard],
+        providers: [
+            auth_service_1.AuthService,
+            consent_lifecycle_service_1.ConsentLifecycleService,
+            password_reset_service_1.PasswordResetService,
+            patient_data_requests_service_1.PatientDataRequestsService,
+            jwt_strategy_1.JwtStrategy,
+            jwt_auth_guard_1.JwtAuthGuard,
+        ],
         exports: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard],
     })
 ], AuthModule);

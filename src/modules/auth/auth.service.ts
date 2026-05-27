@@ -12,6 +12,7 @@ import { AuditService } from "../audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import type { UserRecord } from "../users/entities/user-record";
 import { emptyPatientContactProfile, type PatientContactProfile } from "../users/types/patient-contact-profile.type";
+import { emptyPatientDemographics } from "../users/types/patient-demographics.type";
 import { UsersService } from "../users/users.service";
 import { AuthSessionDto } from "./dto/auth-session.dto";
 import { AcceptConsentDto } from "./dto/accept-consent.dto";
@@ -314,6 +315,10 @@ export class AuthService {
       row.patientContactProfile = {
         ...emptyPatientContactProfile(),
         ...(user.patientContactProfile ?? {}),
+      };
+      row.patientDemographics = {
+        ...emptyPatientDemographics(),
+        ...(user.patientDemographics ?? {}),
       };
       row.consentStatus = await this.consentLifecycleService.getStatus(user.id);
     }

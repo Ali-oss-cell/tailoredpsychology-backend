@@ -27,8 +27,8 @@ let BillingController = class BillingController {
     listInvoices(user) {
         return this.billingService.listInvoicesForUser(user);
     }
-    downloadInvoice(user, invoiceId, res) {
-        const { buffer, fileName, contentType } = this.billingService.getInvoiceDownload(user, invoiceId);
+    async downloadInvoice(user, invoiceId, res) {
+        const { buffer, fileName, contentType } = await this.billingService.getInvoiceDownload(user, invoiceId);
         res.setHeader("Content-Type", contentType);
         res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
         res.send(buffer);
@@ -42,19 +42,19 @@ __decorate([
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Array)
+    __metadata("design:returntype", Promise)
 ], BillingController.prototype, "listInvoices", null);
 __decorate([
     (0, common_1.Get)("invoices/:invoiceId/download"),
-    (0, swagger_1.ApiOperation)({ summary: "Download invoice document (placeholder text file in current build)" }),
-    (0, swagger_1.ApiProduces)("text/plain"),
+    (0, swagger_1.ApiOperation)({ summary: "Download invoice as PDF" }),
+    (0, swagger_1.ApiProduces)("application/pdf"),
     (0, common_1.Header)("Cache-Control", "no-store"),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)("invoiceId")),
     __param(2, (0, common_1.Res)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], BillingController.prototype, "downloadInvoice", null);
 exports.BillingController = BillingController = __decorate([
     (0, swagger_1.ApiTags)("billing"),

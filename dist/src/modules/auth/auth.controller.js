@@ -26,11 +26,26 @@ const login_request_dto_1 = require("./dto/login-request.dto");
 const register_request_dto_1 = require("./dto/register-request.dto");
 const update_profile_dto_1 = require("./dto/update-profile.dto");
 const withdraw_consent_dto_1 = require("./dto/withdraw-consent.dto");
+const forgot_password_request_dto_1 = require("./dto/forgot-password-request.dto");
+const forgot_password_response_dto_1 = require("./dto/forgot-password-response.dto");
+const reset_password_request_dto_1 = require("./dto/reset-password-request.dto");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
+const password_reset_service_1 = require("./password-reset.service");
 let AuthController = class AuthController {
     authService;
-    constructor(authService) {
+    passwordResetService;
+    constructor(authService, passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
+    }
+    /**
+     * When the browser UI is on `www.` (or apex) and the API on `api.`, this **must** be the shared parent
+     * domain (e.g. `.tailoredpsychology.com.au`). Otherwise `clink_role` is host-only on the API host and the
+     * Next.js app never receives it → middleware treats every visit as `guest` and redirects to `/login`.
+     */
+    getRoleCookieDomain() {
+        const domain = process.env.COOKIE_DOMAIN?.trim();
+        return domain && domain.length > 0 ? domain : undefined;
     }
     setRoleCookie(response, role, maxAgeSeconds) {
         response.cookie("clink_role", role, {
@@ -38,6 +53,7 @@ let AuthController = class AuthController {
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
+            domain: this.getRoleCookieDomain(),
             maxAge: maxAgeSeconds * 1000,
         });
     }
@@ -51,16 +67,26 @@ let AuthController = class AuthController {
         this.setRoleCookie(response, session.user.role, session.expiresInSeconds);
         return session;
     }
+    forgotPassword(dto) {
+        return this.passwordResetService.requestReset(dto.email);
+    }
+    async resetPassword(dto) {
+        await this.passwordResetService.completeReset(dto.token, dto.newPassword);
+        return { message: "Password updated. You can sign in with your new password." };
+    }
     logout(response) {
         response.clearCookie("clink_role", {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",
+            domain: this.getRoleCookieDomain(),
         });
         return this.authService.logout();
     }
-    me(payload) {
+    me(payload, response) {
+        // Refresh role cookie on activity so its Max-Age stays aligned with JWT TTL (helps multi-tab / www + api).
+        this.setRoleCookie(response, payload.role, this.authService.getAccessTokenTtlSeconds());
         return this.authService.getCurrentUser(payload.sub);
     }
     updateProfile(payload, dto) {
@@ -104,6 +130,31 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([
+    (0, common_1.Post)("forgot-password"),
+    (0, swagger_1.ApiOperation)({ summary: "Request a password reset link (always returns generic success message)" }),
+    (0, swagger_1.ApiOkResponse)({ type: forgot_password_response_dto_1.ForgotPasswordResponseDto }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [forgot_password_request_dto_1.ForgotPasswordRequestDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, common_1.Post)("reset-password"),
+    (0, swagger_1.ApiOperation)({ summary: "Complete password reset using token from email link" }),
+    (0, swagger_1.ApiOkResponse)({
+        schema: {
+            type: "object",
+            properties: {
+                message: { type: "string", example: "Password updated. You can sign in with your new password." },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [reset_password_request_dto_1.ResetPasswordRequestDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
+__decorate([
     (0, common_1.Post)("logout"),
     (0, swagger_1.ApiOperation)({ summary: "Logout current session (contract-level in Sprint 1)" }),
     (0, swagger_1.ApiOkResponse)({
@@ -127,8 +178,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: "Get profile from current bearer token" }),
     (0, swagger_1.ApiOkResponse)({ type: current_user_dto_1.CurrentUserDto }),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "me", null);
 __decorate([
@@ -215,6 +267,7 @@ __decorate([
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)("auth"),
     (0, common_1.Controller)("auth"),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        password_reset_service_1.PasswordResetService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

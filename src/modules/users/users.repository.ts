@@ -1,5 +1,6 @@
 import type { UserRecord } from "./entities/user-record";
 import type { PatientContactProfile } from "./types/patient-contact-profile.type";
+import type { PatientDemographics } from "./types/patient-demographics.type";
 import type { PatientRetentionState } from "./types/patient-retention-state.type";
 import type { PsychologistAccountStatus } from "./types/psychologist-admin-profile.type";
 
@@ -8,6 +9,7 @@ export const USERS_REPOSITORY = Symbol("USERS_REPOSITORY");
 export type UpdateUserProfileInput = {
   displayName: string;
   patientContactProfile?: Partial<PatientContactProfile>;
+  patientDemographics?: Partial<PatientDemographics>;
 };
 
 export type CreatePsychologistUserInput = {

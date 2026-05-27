@@ -10,6 +10,7 @@ exports.UsersStubRepository = void 0;
 const common_1 = require("@nestjs/common");
 const intake_profile_merge_util_1 = require("./intake-profile-merge.util");
 const patient_contact_profile_type_1 = require("./types/patient-contact-profile.type");
+const patient_demographics_type_1 = require("./types/patient-demographics.type");
 const patient_retention_state_type_1 = require("./types/patient-retention-state.type");
 const psychologist_admin_profile_type_1 = require("./types/psychologist-admin-profile.type");
 const MOCK_USERS = [
@@ -108,22 +109,40 @@ let UsersStubRepository = class UsersStubRepository {
         if (user.role !== "patient") {
             return;
         }
-        const base = user.patientContactProfile ?? (0, patient_contact_profile_type_1.emptyPatientContactProfile)();
-        const patch = input.patientContactProfile;
-        if (!patch) {
-            user.patientContactProfile = base;
-            return;
+        const contactBase = user.patientContactProfile ?? (0, patient_contact_profile_type_1.emptyPatientContactProfile)();
+        const contactPatch = input.patientContactProfile;
+        if (contactPatch) {
+            user.patientContactProfile = {
+                phoneMobile: contactPatch.phoneMobile !== undefined ? contactPatch.phoneMobile : contactBase.phoneMobile,
+                preferredContactMethod: contactPatch.preferredContactMethod !== undefined
+                    ? contactPatch.preferredContactMethod
+                    : contactBase.preferredContactMethod,
+                accessibilityNotes: contactPatch.accessibilityNotes !== undefined
+                    ? contactPatch.accessibilityNotes
+                    : contactBase.accessibilityNotes,
+                emergencyContactName: contactPatch.emergencyContactName !== undefined
+                    ? contactPatch.emergencyContactName
+                    : contactBase.emergencyContactName,
+                emergencyContactPhone: contactPatch.emergencyContactPhone !== undefined
+                    ? contactPatch.emergencyContactPhone
+                    : contactBase.emergencyContactPhone,
+                emergencyContactRelationship: contactPatch.emergencyContactRelationship !== undefined
+                    ? contactPatch.emergencyContactRelationship
+                    : contactBase.emergencyContactRelationship,
+            };
         }
-        user.patientContactProfile = {
-            phoneMobile: patch.phoneMobile !== undefined ? patch.phoneMobile : base.phoneMobile,
-            preferredContactMethod: patch.preferredContactMethod !== undefined ? patch.preferredContactMethod : base.preferredContactMethod,
-            accessibilityNotes: patch.accessibilityNotes !== undefined ? patch.accessibilityNotes : base.accessibilityNotes,
-            emergencyContactName: patch.emergencyContactName !== undefined ? patch.emergencyContactName : base.emergencyContactName,
-            emergencyContactPhone: patch.emergencyContactPhone !== undefined ? patch.emergencyContactPhone : base.emergencyContactPhone,
-            emergencyContactRelationship: patch.emergencyContactRelationship !== undefined
-                ? patch.emergencyContactRelationship
-                : base.emergencyContactRelationship,
-        };
+        const demographicsBase = user.patientDemographics ?? (0, patient_demographics_type_1.emptyPatientDemographics)();
+        const demographicsPatch = input.patientDemographics;
+        if (demographicsPatch) {
+            user.patientDemographics = {
+                dateOfBirth: demographicsPatch.dateOfBirth !== undefined ? demographicsPatch.dateOfBirth : demographicsBase.dateOfBirth,
+                indigenousStatus: demographicsPatch.indigenousStatus !== undefined
+                    ? demographicsPatch.indigenousStatus
+                    : demographicsBase.indigenousStatus,
+                state: demographicsPatch.state !== undefined ? demographicsPatch.state : demographicsBase.state,
+                suburb: demographicsPatch.suburb !== undefined ? demographicsPatch.suburb : demographicsBase.suburb,
+            };
+        }
     }
     async updatePassword(id, password) {
         const user = MOCK_USERS.find((candidate) => candidate.id === id);
@@ -149,6 +168,7 @@ let UsersStubRepository = class UsersStubRepository {
             password: input.password,
             accountOnboardingComplete: false,
             patientContactProfile: (0, patient_contact_profile_type_1.emptyPatientContactProfile)(),
+            patientDemographics: (0, patient_demographics_type_1.emptyPatientDemographics)(),
             patientRetention: (0, patient_retention_state_type_1.emptyPatientRetentionState)(),
         };
         MOCK_USERS.push(next);
@@ -299,6 +319,7 @@ let UsersStubRepository = class UsersStubRepository {
         await this.updateProfile(patientId, {
             displayName: patch.displayName ?? user.displayName,
             patientContactProfile: patch.patientContactProfile,
+            patientDemographics: patch.patientDemographics,
         });
     }
     computeRetentionUntil(patientId, fallbackIso) {

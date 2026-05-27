@@ -22,10 +22,11 @@ function normalizePreferredContact(raw) {
 }
 /**
  * Maps committed intake draft JSON into user/profile updates.
- * Used after intake commit to align account display name, contact, and telehealth emergency fields with intake.
+ * Used after intake commit to align account display name, contact, demographics, and telehealth emergency fields with intake.
  */
 function intakeDraftDataToProfileMerge(data) {
     const patientContactProfile = {};
+    const patientDemographics = {};
     let displayName;
     const pi = data.patientIdentity;
     if (pi && typeof pi === "object") {
@@ -39,6 +40,18 @@ function intakeDraftDataToProfileMerge(data) {
         const pcm = normalizePreferredContact(p.preferredContactMethod);
         if (pcm) {
             patientContactProfile.preferredContactMethod = pcm;
+        }
+        if (needString(p.dateOfBirth)) {
+            patientDemographics.dateOfBirth = String(p.dateOfBirth).trim();
+        }
+        if (typeof p.indigenousStatus === "string") {
+            patientDemographics.indigenousStatus = p.indigenousStatus.trim();
+        }
+        if (needString(p.state)) {
+            patientDemographics.state = String(p.state).trim();
+        }
+        if (needString(p.suburb)) {
+            patientDemographics.suburb = String(p.suburb).trim();
         }
     }
     const th = data.telehealthSafety;
@@ -55,7 +68,8 @@ function intakeDraftDataToProfileMerge(data) {
         }
     }
     const hasContact = Object.keys(patientContactProfile).length > 0;
-    if (!displayName && !hasContact) {
+    const hasDemographics = Object.keys(patientDemographics).length > 0;
+    if (!displayName && !hasContact && !hasDemographics) {
         return null;
     }
     const out = {};
@@ -64,6 +78,9 @@ function intakeDraftDataToProfileMerge(data) {
     }
     if (hasContact) {
         out.patientContactProfile = patientContactProfile;
+    }
+    if (hasDemographics) {
+        out.patientDemographics = patientDemographics;
     }
     return out;
 }

@@ -15,6 +15,7 @@ const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const intake_profile_merge_util_1 = require("./intake-profile-merge.util");
 const patient_contact_profile_type_1 = require("./types/patient-contact-profile.type");
+const patient_demographics_type_1 = require("./types/patient-demographics.type");
 const patient_retention_state_type_1 = require("./types/patient-retention-state.type");
 const psychologist_admin_profile_type_1 = require("./types/psychologist-admin-profile.type");
 const user_role_type_1 = require("./types/user-role.type");
@@ -52,6 +53,12 @@ function mapPrismaUser(row) {
             emergencyContactName: p?.emergency_contact_name ?? "",
             emergencyContactPhone: p?.emergency_contact_phone ?? "",
             emergencyContactRelationship: p?.emergency_contact_relationship ?? "",
+        };
+        base.patientDemographics = {
+            dateOfBirth: p?.date_of_birth ?? "",
+            indigenousStatus: p?.indigenous_status ?? "",
+            state: p?.state ?? "",
+            suburb: p?.suburb ?? "",
         };
         base.patientRetention = {
             deletedAt: iso(row.deleted_at),
@@ -109,34 +116,48 @@ let UsersPgRepository = class UsersPgRepository {
         if (!user || user.role !== "patient") {
             return;
         }
-        const patch = input.patientContactProfile;
-        if (!patch) {
+        const contactPatch = input.patientContactProfile;
+        const demographicsPatch = input.patientDemographics;
+        if (!contactPatch && !demographicsPatch) {
             return;
         }
-        const merged = {
+        const mergedContact = {
             ...(0, patient_contact_profile_type_1.emptyPatientContactProfile)(),
             ...(user.patientContactProfile ?? {}),
-            ...patch,
+            ...(contactPatch ?? {}),
+        };
+        const mergedDemographics = {
+            ...(0, patient_demographics_type_1.emptyPatientDemographics)(),
+            ...(user.patientDemographics ?? {}),
+            ...(demographicsPatch ?? {}),
         };
         await this.prisma.patient_profiles.upsert({
             where: { user_id: id },
             create: {
                 user_id: id,
-                phone_mobile: merged.phoneMobile,
-                preferred_contact_method: merged.preferredContactMethod,
-                accessibility_notes: merged.accessibilityNotes,
-                emergency_contact_name: merged.emergencyContactName,
-                emergency_contact_phone: merged.emergencyContactPhone,
-                emergency_contact_relationship: merged.emergencyContactRelationship,
+                phone_mobile: mergedContact.phoneMobile,
+                preferred_contact_method: mergedContact.preferredContactMethod,
+                accessibility_notes: mergedContact.accessibilityNotes,
+                emergency_contact_name: mergedContact.emergencyContactName,
+                emergency_contact_phone: mergedContact.emergencyContactPhone,
+                emergency_contact_relationship: mergedContact.emergencyContactRelationship,
+                date_of_birth: mergedDemographics.dateOfBirth,
+                indigenous_status: mergedDemographics.indigenousStatus,
+                state: mergedDemographics.state,
+                suburb: mergedDemographics.suburb,
                 updated_at: now,
             },
             update: {
-                phone_mobile: merged.phoneMobile,
-                preferred_contact_method: merged.preferredContactMethod,
-                accessibility_notes: merged.accessibilityNotes,
-                emergency_contact_name: merged.emergencyContactName,
-                emergency_contact_phone: merged.emergencyContactPhone,
-                emergency_contact_relationship: merged.emergencyContactRelationship,
+                phone_mobile: mergedContact.phoneMobile,
+                preferred_contact_method: mergedContact.preferredContactMethod,
+                accessibility_notes: mergedContact.accessibilityNotes,
+                emergency_contact_name: mergedContact.emergencyContactName,
+                emergency_contact_phone: mergedContact.emergencyContactPhone,
+                emergency_contact_relationship: mergedContact.emergencyContactRelationship,
+                date_of_birth: mergedDemographics.dateOfBirth,
+                indigenous_status: mergedDemographics.indigenousStatus,
+                state: mergedDemographics.state,
+                suburb: mergedDemographics.suburb,
                 updated_at: now,
             },
         });
@@ -393,6 +414,7 @@ let UsersPgRepository = class UsersPgRepository {
         await this.updateProfile(patientId, {
             displayName: patch.displayName ?? user.displayName,
             patientContactProfile: patch.patientContactProfile,
+            patientDemographics: patch.patientDemographics,
         });
     }
     async resolvePatientLastInteractionAt(patientId, fallbackIso) {

@@ -236,7 +236,7 @@ let ExportsService = class ExportsService {
     }
     buildExportContent(patientId, generatedAt) {
         return `%PDF-1.4
-% Clink Patient Data Export
+% Tailored Psychology Patient Data Export
 Patient ID: ${patientId}
 Generated At: ${generatedAt}
 

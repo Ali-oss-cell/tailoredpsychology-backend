@@ -933,6 +933,12 @@ let AppointmentsService = class AppointmentsService {
             { key: "session_started", label: "Session started", occurredAt: findOccurredAt("session_started"), status: "pending" },
             { key: "session_completed", label: "Session completed", occurredAt: findOccurredAt("session_completed"), status: "pending" },
             { key: "session_no_show", label: "Session no-show", occurredAt: findOccurredAt("session_no_show"), status: "pending" },
+            {
+                key: "invoice_downloaded",
+                label: "Invoice downloaded",
+                occurredAt: findOccurredAt("invoice_downloaded"),
+                status: "pending",
+            },
         ];
         const normalizedSteps = steps.map((step) => ({
             ...step,
@@ -967,6 +973,20 @@ let AppointmentsService = class AppointmentsService {
     async getMoodCheckins(user, patientId, limit = 14) {
         await this.assertPatientClinicalReadAccess(user, patientId);
         const cap = Math.min(Math.max(limit, 1), 100);
+        if (this.databaseService.isEnabled()) {
+            const rows = await this.prisma.patient_mood_checkins.findMany({
+                where: { patient_id: patientId },
+                orderBy: { created_at: "desc" },
+                take: cap,
+            });
+            return {
+                items: rows.map((row) => ({
+                    id: row.checkin_id,
+                    moodLabel: row.mood_label,
+                    createdAt: row.created_at.toISOString(),
+                })),
+            };
+        }
         const list = [...(this.moodCheckins.get(patientId) ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         const items = list.slice(0, cap).map((e) => ({
             id: e.id,
@@ -977,9 +997,27 @@ let AppointmentsService = class AppointmentsService {
     }
     async createMoodCheckin(user, patientId, dto) {
         this.assertDraftWriteAccess(user, patientId);
+        const moodLabel = dto.moodLabel.trim();
+        const createdAt = new Date();
+        if (this.databaseService.isEnabled()) {
+            const id = `mood_${(0, node_crypto_1.randomUUID)()}`;
+            const row = await this.prisma.patient_mood_checkins.create({
+                data: {
+                    checkin_id: id,
+                    patient_id: patientId,
+                    mood_label: moodLabel,
+                    created_at: createdAt,
+                },
+            });
+            return {
+                id: row.checkin_id,
+                moodLabel: row.mood_label,
+                createdAt: row.created_at.toISOString(),
+            };
+        }
         const id = `mood_${`${this.moodCheckinCounter++}`.padStart(6, "0")}`;
-        const createdAt = new Date().toISOString();
-        const record = { id, moodLabel: dto.moodLabel.trim(), createdAt };
+        const createdAtIso = createdAt.toISOString();
+        const record = { id, moodLabel, createdAt: createdAtIso };
         const existing = this.moodCheckins.get(patientId) ?? [];
         this.moodCheckins.set(patientId, [record, ...existing]);
         return { id: record.id, moodLabel: record.moodLabel, createdAt: record.createdAt };

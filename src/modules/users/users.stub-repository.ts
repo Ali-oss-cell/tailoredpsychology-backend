@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import type { UserRecord } from "./entities/user-record";
 import { intakeDraftDataToProfileMerge } from "./intake-profile-merge.util";
 import { emptyPatientContactProfile, type PatientContactProfile } from "./types/patient-contact-profile.type";
+import { emptyPatientDemographics, type PatientDemographics } from "./types/patient-demographics.type";
 import { emptyPatientRetentionState, type PatientRetentionState } from "./types/patient-retention-state.type";
 import { emptyPsychologistAdminProfile } from "./types/psychologist-admin-profile.type";
 import type {
@@ -122,26 +123,47 @@ export class UsersStubRepository implements UsersRepository {
     if (user.role !== "patient") {
       return;
     }
-    const base: PatientContactProfile = user.patientContactProfile ?? emptyPatientContactProfile();
-    const patch = input.patientContactProfile;
-    if (!patch) {
-      user.patientContactProfile = base;
-      return;
+    const contactBase: PatientContactProfile = user.patientContactProfile ?? emptyPatientContactProfile();
+    const contactPatch = input.patientContactProfile;
+    if (contactPatch) {
+      user.patientContactProfile = {
+        phoneMobile: contactPatch.phoneMobile !== undefined ? contactPatch.phoneMobile : contactBase.phoneMobile,
+        preferredContactMethod:
+          contactPatch.preferredContactMethod !== undefined
+            ? contactPatch.preferredContactMethod
+            : contactBase.preferredContactMethod,
+        accessibilityNotes:
+          contactPatch.accessibilityNotes !== undefined
+            ? contactPatch.accessibilityNotes
+            : contactBase.accessibilityNotes,
+        emergencyContactName:
+          contactPatch.emergencyContactName !== undefined
+            ? contactPatch.emergencyContactName
+            : contactBase.emergencyContactName,
+        emergencyContactPhone:
+          contactPatch.emergencyContactPhone !== undefined
+            ? contactPatch.emergencyContactPhone
+            : contactBase.emergencyContactPhone,
+        emergencyContactRelationship:
+          contactPatch.emergencyContactRelationship !== undefined
+            ? contactPatch.emergencyContactRelationship
+            : contactBase.emergencyContactRelationship,
+      };
     }
-    user.patientContactProfile = {
-      phoneMobile: patch.phoneMobile !== undefined ? patch.phoneMobile : base.phoneMobile,
-      preferredContactMethod:
-        patch.preferredContactMethod !== undefined ? patch.preferredContactMethod : base.preferredContactMethod,
-      accessibilityNotes: patch.accessibilityNotes !== undefined ? patch.accessibilityNotes : base.accessibilityNotes,
-      emergencyContactName:
-        patch.emergencyContactName !== undefined ? patch.emergencyContactName : base.emergencyContactName,
-      emergencyContactPhone:
-        patch.emergencyContactPhone !== undefined ? patch.emergencyContactPhone : base.emergencyContactPhone,
-      emergencyContactRelationship:
-        patch.emergencyContactRelationship !== undefined
-          ? patch.emergencyContactRelationship
-          : base.emergencyContactRelationship,
-    };
+    const demographicsBase: PatientDemographics = user.patientDemographics ?? emptyPatientDemographics();
+    const demographicsPatch = input.patientDemographics;
+    if (demographicsPatch) {
+      user.patientDemographics = {
+        dateOfBirth:
+          demographicsPatch.dateOfBirth !== undefined ? demographicsPatch.dateOfBirth : demographicsBase.dateOfBirth,
+        indigenousStatus:
+          demographicsPatch.indigenousStatus !== undefined
+            ? demographicsPatch.indigenousStatus
+            : demographicsBase.indigenousStatus,
+        state: demographicsPatch.state !== undefined ? demographicsPatch.state : demographicsBase.state,
+        suburb: demographicsPatch.suburb !== undefined ? demographicsPatch.suburb : demographicsBase.suburb,
+      };
+    }
   }
 
   async updatePassword(id: string, password: string): Promise<void> {
@@ -170,6 +192,7 @@ export class UsersStubRepository implements UsersRepository {
       password: input.password,
       accountOnboardingComplete: false,
       patientContactProfile: emptyPatientContactProfile(),
+      patientDemographics: emptyPatientDemographics(),
       patientRetention: emptyPatientRetentionState(),
     };
     MOCK_USERS.push(next);
@@ -331,6 +354,7 @@ export class UsersStubRepository implements UsersRepository {
     await this.updateProfile(patientId, {
       displayName: patch.displayName ?? user.displayName,
       patientContactProfile: patch.patientContactProfile,
+      patientDemographics: patch.patientDemographics,
     });
   }
 

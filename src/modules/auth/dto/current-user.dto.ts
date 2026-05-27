@@ -3,6 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { USER_ROLES, type UserRole } from "../../users/types/user-role.type";
 
 import { PatientContactProfileDto } from "./patient-contact-profile.dto";
+import { PatientDemographicsDto } from "./patient-demographics.dto";
 import { ConsentStatusDto } from "./consent-status.dto";
 
 export class CurrentUserDto {
@@ -30,6 +31,12 @@ export class CurrentUserDto {
     description: "Present for `patient` role: saved account contact, accessibility, and emergency details.",
   })
   patientContactProfile?: PatientContactProfileDto;
+
+  @ApiPropertyOptional({
+    type: PatientDemographicsDto,
+    description: "Present for `patient` role: durable DOB, indigenous status, and location from committed intake.",
+  })
+  patientDemographics?: PatientDemographicsDto;
 
   @ApiPropertyOptional({
     type: ConsentStatusDto,

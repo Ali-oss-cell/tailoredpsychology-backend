@@ -1,4 +1,5 @@
 import type { PatientContactProfile, PreferredContactMethod } from "./types/patient-contact-profile.type";
+import type { PatientDemographics } from "./types/patient-demographics.type";
 
 function needString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
@@ -21,14 +22,16 @@ function normalizePreferredContact(raw: unknown): PreferredContactMethod | undef
 export type IntakeProfileMergePatch = {
   displayName?: string;
   patientContactProfile?: Partial<PatientContactProfile>;
+  patientDemographics?: Partial<PatientDemographics>;
 };
 
 /**
  * Maps committed intake draft JSON into user/profile updates.
- * Used after intake commit to align account display name, contact, and telehealth emergency fields with intake.
+ * Used after intake commit to align account display name, contact, demographics, and telehealth emergency fields with intake.
  */
 export function intakeDraftDataToProfileMerge(data: Record<string, unknown>): IntakeProfileMergePatch | null {
   const patientContactProfile: Partial<PatientContactProfile> = {};
+  const patientDemographics: Partial<PatientDemographics> = {};
   let displayName: string | undefined;
 
   const pi = data.patientIdentity;
@@ -43,6 +46,18 @@ export function intakeDraftDataToProfileMerge(data: Record<string, unknown>): In
     const pcm = normalizePreferredContact(p.preferredContactMethod);
     if (pcm) {
       patientContactProfile.preferredContactMethod = pcm;
+    }
+    if (needString(p.dateOfBirth)) {
+      patientDemographics.dateOfBirth = String(p.dateOfBirth).trim();
+    }
+    if (typeof p.indigenousStatus === "string") {
+      patientDemographics.indigenousStatus = p.indigenousStatus.trim();
+    }
+    if (needString(p.state)) {
+      patientDemographics.state = String(p.state).trim();
+    }
+    if (needString(p.suburb)) {
+      patientDemographics.suburb = String(p.suburb).trim();
     }
   }
 
@@ -61,7 +76,8 @@ export function intakeDraftDataToProfileMerge(data: Record<string, unknown>): In
   }
 
   const hasContact = Object.keys(patientContactProfile).length > 0;
-  if (!displayName && !hasContact) {
+  const hasDemographics = Object.keys(patientDemographics).length > 0;
+  if (!displayName && !hasContact && !hasDemographics) {
     return null;
   }
 
@@ -71,6 +87,9 @@ export function intakeDraftDataToProfileMerge(data: Record<string, unknown>): In
   }
   if (hasContact) {
     out.patientContactProfile = patientContactProfile;
+  }
+  if (hasDemographics) {
+    out.patientDemographics = patientDemographics;
   }
   return out;
 }

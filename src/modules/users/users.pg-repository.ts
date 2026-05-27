@@ -6,6 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { intakeDraftDataToProfileMerge } from "./intake-profile-merge.util";
 import type { UserRecord } from "./entities/user-record";
 import { emptyPatientContactProfile, type PatientContactProfile } from "./types/patient-contact-profile.type";
+import { emptyPatientDemographics, type PatientDemographics } from "./types/patient-demographics.type";
 import { emptyPatientRetentionState, type PatientRetentionState } from "./types/patient-retention-state.type";
 import { emptyPsychologistAdminProfile } from "./types/psychologist-admin-profile.type";
 import { USER_ROLES, type UserRole } from "./types/user-role.type";
@@ -58,6 +59,12 @@ function mapPrismaUser(row: UserWithProfiles): UserRecord {
       emergencyContactName: p?.emergency_contact_name ?? "",
       emergencyContactPhone: p?.emergency_contact_phone ?? "",
       emergencyContactRelationship: p?.emergency_contact_relationship ?? "",
+    };
+    base.patientDemographics = {
+      dateOfBirth: p?.date_of_birth ?? "",
+      indigenousStatus: p?.indigenous_status ?? "",
+      state: p?.state ?? "",
+      suburb: p?.suburb ?? "",
     };
     base.patientRetention = {
       deletedAt: iso(row.deleted_at),
@@ -118,34 +125,48 @@ export class UsersPgRepository implements UsersRepository {
     if (!user || user.role !== "patient") {
       return;
     }
-    const patch = input.patientContactProfile;
-    if (!patch) {
+    const contactPatch = input.patientContactProfile;
+    const demographicsPatch = input.patientDemographics;
+    if (!contactPatch && !demographicsPatch) {
       return;
     }
-    const merged: PatientContactProfile = {
+    const mergedContact: PatientContactProfile = {
       ...emptyPatientContactProfile(),
       ...(user.patientContactProfile ?? {}),
-      ...patch,
+      ...(contactPatch ?? {}),
+    };
+    const mergedDemographics: PatientDemographics = {
+      ...emptyPatientDemographics(),
+      ...(user.patientDemographics ?? {}),
+      ...(demographicsPatch ?? {}),
     };
     await this.prisma.patient_profiles.upsert({
       where: { user_id: id },
       create: {
         user_id: id,
-        phone_mobile: merged.phoneMobile,
-        preferred_contact_method: merged.preferredContactMethod,
-        accessibility_notes: merged.accessibilityNotes,
-        emergency_contact_name: merged.emergencyContactName,
-        emergency_contact_phone: merged.emergencyContactPhone,
-        emergency_contact_relationship: merged.emergencyContactRelationship,
+        phone_mobile: mergedContact.phoneMobile,
+        preferred_contact_method: mergedContact.preferredContactMethod,
+        accessibility_notes: mergedContact.accessibilityNotes,
+        emergency_contact_name: mergedContact.emergencyContactName,
+        emergency_contact_phone: mergedContact.emergencyContactPhone,
+        emergency_contact_relationship: mergedContact.emergencyContactRelationship,
+        date_of_birth: mergedDemographics.dateOfBirth,
+        indigenous_status: mergedDemographics.indigenousStatus,
+        state: mergedDemographics.state,
+        suburb: mergedDemographics.suburb,
         updated_at: now,
       },
       update: {
-        phone_mobile: merged.phoneMobile,
-        preferred_contact_method: merged.preferredContactMethod,
-        accessibility_notes: merged.accessibilityNotes,
-        emergency_contact_name: merged.emergencyContactName,
-        emergency_contact_phone: merged.emergencyContactPhone,
-        emergency_contact_relationship: merged.emergencyContactRelationship,
+        phone_mobile: mergedContact.phoneMobile,
+        preferred_contact_method: mergedContact.preferredContactMethod,
+        accessibility_notes: mergedContact.accessibilityNotes,
+        emergency_contact_name: mergedContact.emergencyContactName,
+        emergency_contact_phone: mergedContact.emergencyContactPhone,
+        emergency_contact_relationship: mergedContact.emergencyContactRelationship,
+        date_of_birth: mergedDemographics.dateOfBirth,
+        indigenous_status: mergedDemographics.indigenousStatus,
+        state: mergedDemographics.state,
+        suburb: mergedDemographics.suburb,
         updated_at: now,
       },
     });
@@ -418,6 +439,7 @@ export class UsersPgRepository implements UsersRepository {
     await this.updateProfile(patientId, {
       displayName: patch.displayName ?? user.displayName,
       patientContactProfile: patch.patientContactProfile,
+      patientDemographics: patch.patientDemographics,
     });
   }
 

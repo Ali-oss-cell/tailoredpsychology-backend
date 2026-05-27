@@ -17,6 +17,7 @@ const appointments_service_1 = require("../appointments/appointments.service");
 const audit_service_1 = require("../audit/audit.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const patient_contact_profile_type_1 = require("../users/types/patient-contact-profile.type");
+const patient_demographics_type_1 = require("../users/types/patient-demographics.type");
 const users_service_1 = require("../users/users.service");
 const password_crypto_util_1 = require("./password-crypto.util");
 const patient_account_completion_util_1 = require("./patient-account-completion.util");
@@ -104,7 +105,7 @@ let AuthService = class AuthService {
                 recipientUserId: user.id,
                 recipientRole: user.role,
                 type: "account_welcome",
-                title: "Welcome to Clink",
+                title: "Welcome to Tailored Psychology",
                 body: "Complete a few quick steps: confirm your profile, finish your intake in booking, then you can message your clinic from the dashboard when session chat is available.",
                 metadata: { ctaPath: "/patient/dashboard?openNotifications=1" },
             });
@@ -246,6 +247,7 @@ let AuthService = class AuthService {
             revoked: false,
         };
     }
+    /** JWT access TTL; also used to align the HttpOnly `clink_role` cookie so Next.js middleware stays in sync. */
     getAccessTokenTtlSeconds() {
         const ttl = this.configService.get("AUTH_JWT_EXPIRES_IN") ?? "3600s";
         const numeric = Number(ttl.replace(/s$/i, ""));
@@ -291,6 +293,10 @@ let AuthService = class AuthService {
             row.patientContactProfile = {
                 ...(0, patient_contact_profile_type_1.emptyPatientContactProfile)(),
                 ...(user.patientContactProfile ?? {}),
+            };
+            row.patientDemographics = {
+                ...(0, patient_demographics_type_1.emptyPatientDemographics)(),
+                ...(user.patientDemographics ?? {}),
             };
             row.consentStatus = await this.consentLifecycleService.getStatus(user.id);
         }

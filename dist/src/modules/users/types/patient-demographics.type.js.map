@@ -1,0 +1,1 @@
+{"version":3,"file":"patient-demographics.type.js","sourceRoot":"","sources":["../../../../../src/modules/users/types/patient-demographics.type.ts"],"names":[],"mappings":";;AAQA,4DAOC;AAPD,SAAgB,wBAAwB;IACtC,OAAO;QACL,WAAW,EAAE,EAAE;QACf,gBAAgB,EAAE,EAAE;QACpB,KAAK,EAAE,EAAE;QACT,MAAM,EAAE,EAAE;KACX,CAAC;AACJ,CAAC"}

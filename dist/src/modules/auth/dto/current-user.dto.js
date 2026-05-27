@@ -13,6 +13,7 @@ exports.CurrentUserDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const user_role_type_1 = require("../../users/types/user-role.type");
 const patient_contact_profile_dto_1 = require("./patient-contact-profile.dto");
+const patient_demographics_dto_1 = require("./patient-demographics.dto");
 const consent_status_dto_1 = require("./consent-status.dto");
 class CurrentUserDto {
     id;
@@ -21,6 +22,7 @@ class CurrentUserDto {
     role;
     accountSetupComplete;
     patientContactProfile;
+    patientDemographics;
     consentStatus;
 }
 exports.CurrentUserDto = CurrentUserDto;
@@ -54,6 +56,13 @@ __decorate([
     }),
     __metadata("design:type", patient_contact_profile_dto_1.PatientContactProfileDto)
 ], CurrentUserDto.prototype, "patientContactProfile", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        type: patient_demographics_dto_1.PatientDemographicsDto,
+        description: "Present for `patient` role: durable DOB, indigenous status, and location from committed intake.",
+    }),
+    __metadata("design:type", patient_demographics_dto_1.PatientDemographicsDto)
+], CurrentUserDto.prototype, "patientDemographics", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         type: consent_status_dto_1.ConsentStatusDto,
