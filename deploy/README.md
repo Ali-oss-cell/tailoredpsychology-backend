@@ -42,7 +42,8 @@ Edit `.env` and set:
 - `AUTH_JWT_SECRET`
 - `COOKIE_DOMAIN` (set to `.yourdomain.com` so frontend + API subdomains can share role cookie)
 - `CORS_ORIGINS` (optional; comma-separated `https://` site origins — defaults from `BASE_DOMAIN` if omitted)
-- optional Twilio and scheduler settings
+- **Twilio Video (telehealth):** `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET` — see [Twilio Video setup](#7-twilio-video-telehealth) below
+- optional scheduler settings
 
 ## 2) Start stack
 
@@ -73,8 +74,45 @@ Expected:
 After schema changes (e.g. patient mood check-ins):
 
 ```bash
-docker compose --env-file .env -f docker-compose.traefik.yml exec api npx prisma migrate deploy
+docker compose --env-file .env -f docker-compose.traefik.yml exec backend npx prisma migrate deploy
 ```
+
+## 7) Twilio Video (telehealth)
+
+In-browser video calls use **Twilio Programmable Video**. The backend mints short-lived join tokens; the frontend connects with the Twilio Video SDK.
+
+### Twilio Console setup
+
+1. Sign in at [Twilio Console](https://console.twilio.com).
+2. Copy **Account SID** from the dashboard (`AC...`).
+3. Go to **Account → API keys & tokens → Create API key**.
+4. Save the **API Key SID** (`SK...`) and **API Key Secret** (shown once).
+5. Enable billing if required for Video on your account (trial accounts can test with limits).
+
+### Server `.env`
+
+In `deploy/.env`:
+
+```env
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_API_SECRET=your_api_key_secret_here
+```
+
+Restart backend after changing credentials:
+
+```bash
+docker compose --env-file .env -f docker-compose.traefik.yml up -d --build backend
+```
+
+### QA test users + session in 3 minutes
+
+```bash
+docker compose --env-file .env -f docker-compose.traefik.yml exec backend npm run seed:video-session-test
+```
+
+Default accounts: `video.patient@clink.test` / `video.psych@clink.test` — password `VideoTest123!`  
+Session URL: `https://<BASE_DOMAIN>/video-session/appt_video_test`
 
 ## 5) Deploy updates
 
@@ -82,7 +120,7 @@ After pulling new commits in backend/frontend:
 
 ```bash
 docker compose --env-file .env -f docker-compose.traefik.yml up -d --build
-docker compose --env-file .env -f docker-compose.traefik.yml exec api npx prisma migrate deploy
+docker compose --env-file .env -f docker-compose.traefik.yml exec backend npx prisma migrate deploy
 ```
 
 ## 6) Staging smoke (Wave 20)
