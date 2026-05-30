@@ -103,7 +103,13 @@ Restart backend after changing credentials:
 
 ```bash
 docker compose --env-file .env -f docker-compose.traefik.yml up -d --build backend
+docker compose --env-file .env -f docker-compose.traefik.yml exec backend npm run verify:twilio
 ```
+
+If `verify:twilio` fails, the three values do not belong together. Common mistakes:
+- Using **Auth Token** in `TWILIO_API_SECRET` (must be **API Key Secret** from Create API key)
+- Putting **Account SID** (`AC…`) in `TWILIO_API_KEY` (must be **API Key SID** `SK…`)
+- Quotes or spaces in `.env` values (the backend strips quotes automatically)
 
 ### QA test users + session in 3 minutes
 

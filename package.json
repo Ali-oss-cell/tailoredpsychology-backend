@@ -24,6 +24,7 @@
     "seed:rich-test-data": "ts-node scripts/seed-rich-test-data.ts",
     "seed:staging-qa-users": "ts-node scripts/seed-staging-qa-users.ts",
     "seed:video-session-test": "ts-node scripts/seed-video-session-test.ts",
+    "verify:twilio": "ts-node scripts/verify-twilio-video.ts",
     "prisma:generate": "prisma generate",
     "prisma:pull": "prisma db pull",
     "prisma:validate": "prisma validate",
