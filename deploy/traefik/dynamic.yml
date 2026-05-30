@@ -24,5 +24,6 @@ http:
 
     backend-service:
       loadBalancer:
+        passHostHeader: true
         servers:
           - url: http://backend:3001
