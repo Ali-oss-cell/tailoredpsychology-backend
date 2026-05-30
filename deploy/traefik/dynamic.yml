@@ -1,9 +1,19 @@
 http:
   routers:
+    frontend-socket-router:
+      entryPoints:
+        - websecure
+      rule: (Host(`tailoredpsychology.com.au`) || Host(`www.tailoredpsychology.com.au`)) && PathPrefix(`/socket.io`)
+      priority: 100
+      service: backend-service
+      tls:
+        certResolver: letsencrypt
+
     frontend-router:
       entryPoints:
         - websecure
       rule: Host(`tailoredpsychology.com.au`) || Host(`www.tailoredpsychology.com.au`)
+      priority: 1
       service: frontend-service
       tls:
         certResolver: letsencrypt

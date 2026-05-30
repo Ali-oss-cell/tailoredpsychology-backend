@@ -129,13 +129,15 @@ docker compose --env-file .env -f docker-compose.traefik.yml up -d --build
 docker compose --env-file .env -f docker-compose.traefik.yml exec backend npx prisma migrate deploy
 ```
 
-Traefik picks up `deploy/traefik/dynamic.yml` changes on file watch (no rebuild needed for routing-only edits). Restart Traefik if WebSocket chat still fails after deploy:
+Chat uses Socket.IO on `/socket.io` (namespace `/chat`). Production routes that path from the **main site** through Traefik to the backend so the browser stays same-origin. Set `NEXT_PUBLIC_SOCKET_SAME_ORIGIN=true` on the frontend container (already in `docker-compose.traefik.yml`).
+
+After deploy, restart Traefik so routing picks up `deploy/traefik/dynamic.yml`:
 
 ```bash
 docker compose --env-file .env -f docker-compose.traefik.yml restart traefik backend frontend
 ```
 
-Chat uses Socket.IO on `wss://api.<BASE_DOMAIN>/socket.io/` (namespace `/chat`). If you use Cloudflare in front of the droplet, enable **WebSockets** for the API hostname.
+If you use Cloudflare in front of the droplet, enable **WebSockets** for the site hostname.
 
 ## 6) Staging smoke (Wave 20)
 

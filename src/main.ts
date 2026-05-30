@@ -4,11 +4,14 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 import { AppModule } from "./app.module";
 import { buildCorsOptions } from "./cors.config";
+import { SocketIoAdapter } from "./socket-io.adapter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: buildCorsOptions(),
   });
+
+  app.useWebSocketAdapter(new SocketIoAdapter(app));
 
   app.setGlobalPrefix("api");
   app.useGlobalPipes(

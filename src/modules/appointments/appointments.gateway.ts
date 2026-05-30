@@ -13,6 +13,7 @@ import { JwtService } from "@nestjs/jwt";
 import type { Server, Socket } from "socket.io";
 
 import type { AuthJwtPayload } from "../auth/interfaces/auth-jwt-payload.interface";
+import { getAllowedCorsOrigins } from "../../cors.config";
 import { AppointmentsService } from "./appointments.service";
 import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
 
@@ -23,7 +24,10 @@ type ErrorAck = { ok: false; error: string };
 @Injectable()
 @WebSocketGateway({
   namespace: "/chat",
-  cors: { origin: "*" },
+  cors: {
+    origin: getAllowedCorsOrigins(),
+    credentials: true,
+  },
 })
 export class AppointmentsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
