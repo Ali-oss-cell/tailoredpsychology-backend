@@ -140,6 +140,15 @@ export class AppointmentsController {
     return this.appointmentsService.getChatWindow(user, id);
   }
 
+  @Get("appointments/:id/chat/messages")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "List appointment pre-session chat messages" })
+  @ApiOkResponse({ type: ChatMessageDto, isArray: true })
+  getChatMessages(@CurrentUser() user: AuthJwtPayload, @Param("id") id: string): Promise<ChatMessageDto[]> {
+    return this.appointmentsService.getChatHistory(user, id);
+  }
+
   @Post("appointments/:id/chat/messages")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
