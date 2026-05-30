@@ -7,6 +7,28 @@ Traefik uses a file-based routing config (`deploy/traefik/dynamic.yml`) to avoid
 - Frontend: `https://tailoredpsychology.com.au`
 - Backend API: `https://api.tailoredpsychology.com.au`
 
+## Stripe pay-at-booking
+
+Patient flow: **Book → Pay (Stripe Checkout) → Confirmed → Session → Receipt**.
+
+1. Set in `deploy/.env`:
+   - `STRIPE_SECRET_KEY` — Dashboard → Developers → API keys
+   - `STRIPE_WEBHOOK_SECRET` — from webhook endpoint signing secret
+   - `STRIPE_SESSION_FEE_CENTS=22000` (optional, default $220 AUD)
+   - `PUBLIC_APP_URL=https://tailoredpsychology.com.au` (success/cancel redirect URLs)
+
+2. Create webhook in Stripe Dashboard:
+   - URL: `https://api.<BASE_DOMAIN>/api/payments/stripe/webhook`
+   - Events: `checkout.session.completed`, `checkout.session.expired`
+
+3. After deploy, run migrations (includes invoice + webhook idempotency tables):
+
+```bash
+docker compose --env-file .env -f docker-compose.traefik.yml exec backend npx prisma migrate deploy
+```
+
+Without `STRIPE_SECRET_KEY`, local/dev auto-confirms payment after booking (no Stripe redirect).
+
 ## Prerequisites
 
 - Docker and Docker Compose plugin installed on the droplet

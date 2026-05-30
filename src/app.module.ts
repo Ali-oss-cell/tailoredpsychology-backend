@@ -9,6 +9,7 @@ import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BillingModule } from "./modules/billing/billing.module";
+import { PaymentsModule } from "./modules/payments/payments.module";
 import { CoreModule } from "./modules/core/core.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ExportsModule } from "./modules/exports/exports.module";
@@ -31,6 +32,7 @@ import { UsersModule } from "./modules/users/users.module";
     AppointmentsModule,
     AnalyticsModule,
     BillingModule,
+    PaymentsModule,
     ExportsModule,
     ResourcesModule,
     PsychologistNotesModule,

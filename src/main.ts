@@ -9,6 +9,7 @@ import { SocketIoAdapter } from "./socket-io.adapter";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: buildCorsOptions(),
+    rawBody: true,
   });
 
   app.useWebSocketAdapter(new SocketIoAdapter(app));

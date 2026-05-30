@@ -1,8 +1,10 @@
 export type BookingRequestState =
+  | "pending_payment"
   | "submitted"
   | "triage_review"
   | "matched_pending_confirmation"
-  | "appointment_confirmed";
+  | "appointment_confirmed"
+  | "payment_abandoned";
 
 export type BookingRequestRecord = {
   bookingRequestId: string;

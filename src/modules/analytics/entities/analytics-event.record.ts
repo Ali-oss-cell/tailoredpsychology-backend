@@ -12,6 +12,8 @@ export type AnalyticsEventName =
   | "join_success"
   | "join_failed"
   | "join_warned"
+  | "payment_completed"
+  | "payment_abandoned"
   | "invoice_downloaded";
 
 export type AnalyticsEventRecord = {

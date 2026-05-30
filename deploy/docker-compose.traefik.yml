@@ -57,6 +57,10 @@ services:
       PORT: 3001
       BASE_DOMAIN: ${BASE_DOMAIN}
       PUBLIC_BACKEND_URL: https://api.${BASE_DOMAIN}
+      PUBLIC_APP_URL: https://${BASE_DOMAIN}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_SESSION_FEE_CENTS: ${STRIPE_SESSION_FEE_CENTS:-22000}
     depends_on:
       postgres:
         condition: service_healthy

@@ -286,7 +286,7 @@ export class AppointmentsService {
       referralDocumentId: dto.referralDocumentId ?? "",
       timezone,
       notes: dto.notes ?? "",
-      state: "submitted",
+      state: "pending_payment",
       createdAt: now,
       updatedAt: now,
     };
@@ -344,11 +344,11 @@ export class AppointmentsService {
       recipientUserId: user.sub,
       recipientRole: user.role,
       type: "booking_submitted",
-      title: "Booking request submitted",
-      body: "Your request has been submitted and is now in triage queue.",
+      title: "Complete payment to confirm",
+      body: "Your slot is held while you complete payment. You will be redirected to our secure checkout.",
       metadata: {
         bookingRequestId: record.bookingRequestId,
-        ctaPath: "/patient/appointments",
+        ctaPath: "/patient/book-appointment",
       },
     });
 
@@ -822,6 +822,89 @@ export class AppointmentsService {
       appointmentDate: booking.appointmentDate,
       referralDocumentId: booking.referralDocumentId || undefined,
     };
+  }
+
+  async getBookingRequestForPayment(user: AuthJwtPayload, bookingRequestId: string): Promise<BookingRequestRecord> {
+    const booking = await this.getBookingRequestById(bookingRequestId);
+    if (!booking) {
+      throw new NotFoundException("Booking request not found");
+    }
+    if (user.role !== "patient" || booking.patientId !== user.sub) {
+      throw new ForbiddenException("You cannot access this booking request");
+    }
+    return booking;
+  }
+
+  /** Returns false when booking was already confirmed (idempotent replay). */
+  async confirmBookingAfterPayment(bookingRequestId: string): Promise<boolean> {
+    const booking = await this.getBookingRequestById(bookingRequestId);
+    if (!booking) {
+      throw new NotFoundException("Booking request not found");
+    }
+    if (booking.state === "appointment_confirmed") {
+      return false;
+    }
+    if (booking.state !== "pending_payment") {
+      throw new BadRequestException("Booking is not awaiting payment");
+    }
+
+    const now = new Date().toISOString();
+    const confirmed: BookingRequestRecord = {
+      ...booking,
+      state: "appointment_confirmed",
+      updatedAt: now,
+    };
+    await this.saveBookingRequest(confirmed);
+
+    await this.analyticsService.recordEvent({
+      name: "booking_confirmed",
+      actorUserId: booking.patientId,
+      actorRole: "patient",
+      targetId: bookingRequestId,
+      idempotencyKey: `booking_confirmed:${bookingRequestId}`,
+      metadata: {
+        source: "stripe_checkout",
+      },
+    });
+
+    return true;
+  }
+
+  async abandonBookingPayment(bookingRequestId: string, reasonEventId: string): Promise<void> {
+    const booking = await this.getBookingRequestById(bookingRequestId);
+    if (!booking || booking.state !== "pending_payment") {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    await this.saveBookingRequest({
+      ...booking,
+      state: "payment_abandoned",
+      updatedAt: now,
+    });
+
+    const appointmentId = `appt_${bookingRequestId}`;
+    const appointment = await this.getAppointmentById(appointmentId);
+    if (appointment && appointment.status === "scheduled") {
+      await this.saveAppointment({ ...appointment, status: "cancelled" });
+    }
+
+    await this.analyticsService.recordEvent({
+      name: "payment_abandoned",
+      actorUserId: booking.patientId,
+      actorRole: "patient",
+      targetId: bookingRequestId,
+      idempotencyKey: `payment_abandoned:${bookingRequestId}:${reasonEventId}`,
+    });
+  }
+
+  async getBookingPaymentStateForAppointment(appointmentId: string): Promise<BookingRequestRecord["state"] | undefined> {
+    if (!appointmentId.startsWith("appt_")) {
+      return undefined;
+    }
+    const bookingRequestId = appointmentId.slice("appt_".length);
+    const booking = await this.getBookingRequestById(bookingRequestId);
+    return booking?.state;
   }
 
   async getLatestIntakeDraft(user: AuthJwtPayload, patientId: string): Promise<IntakeDraftDto> {
@@ -1797,6 +1880,9 @@ export class AppointmentsService {
   }
 
   private getNextActionForState(state: BookingRequestRecord["state"]): string {
+    if (state === "pending_payment") {
+      return "Complete payment to confirm your appointment.";
+    }
     if (state === "submitted") {
       return "Your request is in triage queue.";
     }
@@ -2015,12 +2101,14 @@ export class AppointmentsService {
     const readiness = await this.getTelehealthReadinessRecord(appointment.appointmentId, appointment.patientId);
     const readinessStatus: JoinAttemptDecisionDto["readinessStatus"] = readiness?.overallStatus ?? "unknown";
     const reasons: string[] = [];
+    const bookingState = await this.getBookingPaymentStateForAppointment(appointment.appointmentId);
+    if (bookingState === "pending_payment") reasons.push("payment_pending");
     if (windowStatus === "locked") reasons.push("session_window_locked");
     if (windowStatus === "closed") reasons.push("session_window_closed");
     if (readinessStatus === "attention") reasons.push("readiness_attention");
     if (readinessStatus === "unknown") reasons.push("readiness_unknown");
     return {
-      allowed: windowStatus === "open",
+      allowed: windowStatus === "open" && bookingState !== "pending_payment",
       readinessStatus,
       windowStatus,
       reasons,
@@ -2158,13 +2246,19 @@ export class AppointmentsService {
     slotId: string,
     appointmentDate: string,
   ): Promise<BookingRequestRecord | undefined> {
+    const slotHoldingStates: BookingRequestRecord["state"][] = [
+      "pending_payment",
+      "submitted",
+      "triage_review",
+      "matched_pending_confirmation",
+    ];
     if (!this.databaseService.isEnabled()) {
       return [...this.bookingRequests.values()].find(
         (item) =>
           item.clinicianId === clinicianId &&
           item.slotId === slotId &&
           item.appointmentDate === appointmentDate &&
-          item.state !== "appointment_confirmed",
+          slotHoldingStates.includes(item.state),
       );
     }
     const hit = await this.prisma.booking_requests.findFirst({
@@ -2172,7 +2266,7 @@ export class AppointmentsService {
         clinician_id: clinicianId,
         slot_id: slotId,
         appointment_date: new Date(appointmentDate),
-        state: { not: "appointment_confirmed" },
+        state: { in: slotHoldingStates },
       },
     });
     const id = hit?.booking_request_id;
