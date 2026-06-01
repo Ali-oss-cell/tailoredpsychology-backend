@@ -844,7 +844,7 @@ export class AppointmentsService {
     if (booking.state === "appointment_confirmed") {
       return false;
     }
-    if (booking.state !== "pending_payment") {
+    if (booking.state !== "pending_payment" && booking.state !== "submitted") {
       throw new BadRequestException("Booking is not awaiting payment");
     }
 

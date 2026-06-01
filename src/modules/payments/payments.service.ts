@@ -14,6 +14,7 @@ import { DatabaseService } from "../core/database.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
+import type { BookingRequestState } from "../appointments/entities/booking-request.record";
 import { BookingCheckoutResponseDto } from "./dto/booking-checkout-response.dto";
 import { StripeClientService } from "./stripe-client.service";
 import type { StripeCheckoutSessionPayload, StripeWebhookPayload } from "./stripe-webhook.types";
@@ -45,6 +46,10 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
   ) {}
 
+  private bookingCanCheckout(state: BookingRequestState): boolean {
+    return state === "pending_payment" || state === "submitted";
+  }
+
   async createBookingCheckout(user: AuthJwtPayload, bookingRequestId: string): Promise<BookingCheckoutResponseDto> {
     if (user.role !== "patient") {
       throw new ForbiddenException("Only patients can pay for bookings");
@@ -59,8 +64,15 @@ export class PaymentsService {
         devModeAutoConfirmed: false,
       };
     }
-    if (booking.state !== "pending_payment") {
-      throw new BadRequestException("This booking is not awaiting payment");
+    if (booking.state === "payment_abandoned") {
+      throw new BadRequestException(
+        "This booking payment expired. Please start a new booking and choose a new time slot.",
+      );
+    }
+    if (!this.bookingCanCheckout(booking.state)) {
+      throw new BadRequestException(
+        `This booking cannot be paid (status: ${booking.state.replaceAll("_", " ")}). Start a new booking if needed.`,
+      );
     }
 
     const appointmentId = `appt_${bookingRequestId}`;
