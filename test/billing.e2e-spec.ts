@@ -58,9 +58,10 @@ describe("BillingController (e2e)", () => {
       .get("/api/billing/invoices/INV-1042/download")
       .set("Authorization", `Bearer ${token}`);
     expect(response.status).toBe(200);
-    expect(response.headers["content-type"]).toMatch(/text\/plain/);
+    expect(response.headers["content-type"]).toMatch(/application\/pdf/);
     expect(String(response.headers["content-disposition"])).toContain("attachment");
-    expect(String(response.text)).toContain("INV-1042");
+    expect(String(response.body)).toContain("%PDF-1.4");
+    expect(String(response.body)).toContain("INV-1042");
   });
 
   it("returns 403 for non-patient on invoices list", async () => {
