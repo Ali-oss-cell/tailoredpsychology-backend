@@ -12,6 +12,7 @@ import { AnalyticsService } from "../analytics/analytics.service";
 import { AppointmentsService } from "../appointments/appointments.service";
 import { DatabaseService } from "../core/database.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { PortalGateway } from "../patient-portal/portal.gateway";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
 import type { BookingRequestState } from "../appointments/entities/booking-request.record";
@@ -41,6 +42,7 @@ export class PaymentsService {
     private readonly appointmentsService: AppointmentsService,
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
+    private readonly portalGateway: PortalGateway,
     private readonly analyticsService: AnalyticsService,
     private readonly databaseService: DatabaseService,
     private readonly prisma: PrismaService,
@@ -284,6 +286,8 @@ export class PaymentsService {
         ctaPath: "/patient/appointments",
       },
     });
+
+    this.portalGateway.emitDashboardInvalidate(params.patientId, "all");
 
     await this.markWebhookEventProcessed(params.stripeEventId);
   }
