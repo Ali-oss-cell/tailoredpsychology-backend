@@ -7,6 +7,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 
+import { AuditService } from "../audit/audit.service";
 import type { AuthJwtPayload } from "../auth/interfaces/auth-jwt-payload.interface";
 import { AnalyticsService } from "../analytics/analytics.service";
 import { AppointmentsService } from "../appointments/appointments.service";
@@ -43,6 +44,7 @@ export class PaymentsService {
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
     private readonly portalGateway: PortalGateway,
+    private readonly auditService: AuditService,
     private readonly analyticsService: AnalyticsService,
     private readonly databaseService: DatabaseService,
     private readonly prisma: PrismaService,
@@ -288,6 +290,20 @@ export class PaymentsService {
     });
 
     this.portalGateway.emitDashboardInvalidate(params.patientId, "all");
+
+    await this.auditService.recordEvent({
+      actorUserId: params.patientId,
+      actorRole: "patient",
+      action: "booking_payment_confirmed",
+      targetType: "booking_request",
+      targetId: params.bookingRequestId,
+      metadata: {
+        invoiceId: params.invoiceId,
+        appointmentId: params.appointmentId,
+        amountCents: params.amountCents,
+        stripeEventId: params.stripeEventId,
+      },
+    });
 
     await this.markWebhookEventProcessed(params.stripeEventId);
   }

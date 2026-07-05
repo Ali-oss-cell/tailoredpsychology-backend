@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 
 import { buildInvoicePdf } from "../../common/invoice-pdf.util";
+import { AuditService } from "../audit/audit.service";
 import { AnalyticsService } from "../analytics/analytics.service";
 import { DatabaseService } from "../core/database.service";
 import type { AuthJwtPayload } from "../auth/interfaces/auth-jwt-payload.interface";
@@ -45,6 +46,7 @@ export class BillingService {
     private readonly databaseService: DatabaseService,
     private readonly prisma: PrismaService,
     private readonly analyticsService: AnalyticsService,
+    private readonly auditService: AuditService,
   ) {}
 
   private formatAmount(cents: number): string {
@@ -164,6 +166,15 @@ export class BillingService {
       targetId: user.sub,
       idempotencyKey: `invoice_downloaded:${invoiceId}:${user.sub}`,
       metadata: { invoiceId },
+    });
+
+    await this.auditService.recordEvent({
+      actorUserId: user.sub,
+      actorRole: user.role,
+      action: "invoice_downloaded",
+      targetType: "system",
+      targetId: invoiceId,
+      metadata: { patientId: user.sub, status: invoice.status },
     });
 
     return {

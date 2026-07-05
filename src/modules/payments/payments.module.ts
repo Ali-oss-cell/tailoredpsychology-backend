@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { AuditModule } from "../audit/audit.module";
 import { AnalyticsModule } from "../analytics/analytics.module";
 import { AppointmentsModule } from "../appointments/appointments.module";
 import { AuthModule } from "../auth/auth.module";
@@ -11,7 +12,7 @@ import { PaymentsService } from "./payments.service";
 import { StripeClientService } from "./stripe-client.service";
 
 @Module({
-  imports: [AuthModule, AppointmentsModule, UsersModule, NotificationsModule, AnalyticsModule, PatientPortalModule],
+  imports: [AuthModule, AppointmentsModule, UsersModule, NotificationsModule, AnalyticsModule, AuditModule, PatientPortalModule],
   controllers: [PaymentsController],
   providers: [PaymentsService, StripeClientService],
   exports: [PaymentsService, StripeClientService],
