@@ -37,7 +37,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin appointment oversight snapshot" })
   @ApiOkResponse({ type: [AdminAppointmentItemDto] })
   async listAppointments(@CurrentUser() user: AuthJwtPayload): Promise<AdminAppointmentItemDto[]> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     if (!this.databaseService.isEnabled()) {
       const sessions = await this.appointmentsService.getPatientSessions({ ...user, role: "admin" }, "user_patient_001");
       return sessions.map((s) => ({
@@ -78,7 +78,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin patient oversight snapshot" })
   @ApiOkResponse({ type: [AdminPatientItemDto] })
   async listPatients(@CurrentUser() user: AuthJwtPayload): Promise<AdminPatientItemDto[]> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     if (!this.databaseService.isEnabled()) {
       return [
         {
@@ -125,7 +125,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin staff oversight snapshot" })
   @ApiOkResponse({ type: [AdminStaffItemDto] })
   async listStaff(@CurrentUser() user: AuthJwtPayload): Promise<AdminStaffItemDto[]> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     if (!this.databaseService.isEnabled()) {
       return [
         {
@@ -155,7 +155,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin settings domains snapshot" })
   @ApiOkResponse({ type: [AdminSettingsDomainDto] })
   async listSettings(@CurrentUser() user: AuthJwtPayload): Promise<AdminSettingsDomainDto[]> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     const dbHealth = await this.databaseService.getHealthStatus().catch(() => ({
       configured: false,
       connected: false,
@@ -173,7 +173,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin resources governance snapshot" })
   @ApiOkResponse({ type: [AdminResourceItemDto] })
   async listResources(@CurrentUser() user: AuthJwtPayload): Promise<AdminResourceItemDto[]> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     if (!this.databaseService.isEnabled()) {
       return [
         {
@@ -205,7 +205,7 @@ export class AdminOpsController {
     @CurrentUser() user: AuthJwtPayload,
     @Query("state") state?: "all" | "deleted" | "legal_hold" | "purge_eligible",
   ): Promise<AdminDeletionQueueItemDto[]> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     const effectiveState = state ?? "all";
     if (!this.databaseService.isEnabled()) {
       return [
@@ -253,7 +253,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin billing aggregate snapshot" })
   @ApiOkResponse({ type: AdminBillingSummaryDto })
   async billingSnapshot(@CurrentUser() user: AuthJwtPayload): Promise<AdminBillingSummaryDto> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     const events = await this.analyticsService.listEvents();
     const bookings = events.filter((e) => e.name === "booking_confirmed").length;
     return {
@@ -269,7 +269,7 @@ export class AdminOpsController {
   @ApiOperation({ summary: "Get admin analytics summary aggregates" })
   @ApiOkResponse({ type: AdminAnalyticsSummaryDto })
   async analyticsSummary(@CurrentUser() user: AuthJwtPayload): Promise<AdminAnalyticsSummaryDto> {
-    this.assertAdmin(user);
+    this.assertOpsGovernance(user);
     const events = await this.analyticsService.listEvents();
     const audits = await this.auditService.listEvents({});
     return {
@@ -280,9 +280,9 @@ export class AdminOpsController {
     };
   }
 
-  private assertAdmin(user: AuthJwtPayload): void {
-    if (user.role !== "admin") {
-      throw new ForbiddenException("Only admin can access admin ops governance endpoints");
+  private assertOpsGovernance(user: AuthJwtPayload): void {
+    if (user.role !== "admin" && user.role !== "practice_manager") {
+      throw new ForbiddenException("Only admin and practice_manager can access ops governance endpoints");
     }
   }
 }

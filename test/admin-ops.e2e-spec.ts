@@ -45,8 +45,16 @@ describe("Admin ops governance endpoints (e2e)", () => {
     }
   });
 
-  it("forbids non-admin access", async () => {
+  it("allows practice_manager access to ops snapshots", async () => {
     const token = await loginAndGetToken(app, "manager@clink.test", "Manager123!");
+    const response = await request(app.getHttpServer())
+      .get("/api/admin/ops/appointments")
+      .set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(200);
+  });
+
+  it("forbids patient access", async () => {
+    const token = await loginAndGetToken(app, "patient@clink.test", "Patient123!");
     const response = await request(app.getHttpServer())
       .get("/api/admin/ops/appointments")
       .set("Authorization", `Bearer ${token}`);
