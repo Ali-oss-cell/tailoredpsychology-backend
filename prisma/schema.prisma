@@ -23,21 +23,41 @@ model analytics_events {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model appointments {
-  appointment_id       String                 @id
-  patient_id           String
-  clinician_id         String
-  scheduled_start_at   DateTime               @db.Timestamptz(6)
-  scheduled_end_at     DateTime               @db.Timestamptz(6)
-  status               String
-  chat_window_open_at  DateTime               @db.Timestamptz(6)
-  chat_window_close_at DateTime               @db.Timestamptz(6)
-  chat_messages        chat_messages[]
-  chat_presence        chat_presence[]
-  telehealth_readiness telehealth_readiness[]
+  appointment_id          String                    @id
+  patient_id              String
+  clinician_id            String
+  scheduled_start_at      DateTime                  @db.Timestamptz(6)
+  scheduled_end_at        DateTime                  @db.Timestamptz(6)
+  status                  String
+  chat_window_open_at     DateTime                  @db.Timestamptz(6)
+  chat_window_close_at    DateTime                  @db.Timestamptz(6)
+  actual_started_at       DateTime?                 @db.Timestamptz(6)
+  actual_ended_at         DateTime?                 @db.Timestamptz(6)
+  version                 Int                       @default(0)
+  chat_messages           chat_messages[]
+  chat_presence           chat_presence[]
+  telehealth_readiness    telehealth_readiness[]
+  appointment_transitions appointment_transitions[]
 
   @@index([chat_window_open_at, chat_window_close_at], map: "appointments_chat_window_idx")
   @@index([clinician_id, scheduled_start_at], map: "appointments_clinician_start_idx")
   @@index([patient_id, scheduled_start_at], map: "appointments_patient_start_idx")
+  @@index([status, scheduled_end_at], map: "appointments_status_end_idx")
+}
+
+model appointment_transitions {
+  transition_id  String       @id
+  appointment_id String
+  from_status    String
+  to_status      String
+  actor_user_id  String
+  actor_role     String
+  reason         String       @default("")
+  metadata       Json         @default("{}")
+  occurred_at    DateTime     @default(now()) @db.Timestamptz(6)
+  appointments   appointments @relation(fields: [appointment_id], references: [appointment_id], onDelete: Cascade)
+
+  @@index([appointment_id, occurred_at], map: "appointment_transitions_appt_time_idx")
 }
 
 model audit_events {

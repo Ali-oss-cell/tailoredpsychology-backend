@@ -6,6 +6,8 @@ import { AuditModule } from "../audit/audit.module";
 import { AnalyticsModule } from "../analytics/analytics.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { UsersModule } from "../users/users.module";
+import { AppointmentStateScheduler } from "./appointment-state.scheduler";
+import { AppointmentStateService } from "./appointment-state.service";
 import { AppointmentsController } from "./appointments.controller";
 import { AppointmentsGateway } from "./appointments.gateway";
 import { AppointmentsService } from "./appointments.service";
@@ -26,7 +28,14 @@ import { TwilioTokenService } from "./twilio-token.service";
     }),
   ],
   controllers: [AppointmentsController],
-  providers: [AppointmentsService, AppointmentsGateway, ReadinessRemindersScheduler, TwilioTokenService],
-  exports: [AppointmentsService],
+  providers: [
+    AppointmentsService,
+    AppointmentStateService,
+    AppointmentStateScheduler,
+    AppointmentsGateway,
+    ReadinessRemindersScheduler,
+    TwilioTokenService,
+  ],
+  exports: [AppointmentsService, AppointmentStateService],
 })
 export class AppointmentsModule {}

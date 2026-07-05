@@ -42,6 +42,7 @@ import { CreateMoodCheckinDto } from "./dto/create-mood-checkin.dto";
 import { MoodCheckinItemDto, MoodCheckinsListResponseDto } from "./dto/mood-checkin-item.dto";
 import { PatientAppointmentSummaryDto, PatientAppointmentsListResponseDto } from "./dto/patient-appointment-summary.dto";
 import { PatientJourneyTimelineDto } from "./dto/patient-journey-timeline.dto";
+import { PatientNextSessionDto } from "./dto/patient-next-session.dto";
 import { PsychologistPreSessionWorkspaceDto } from "./dto/psychologist-pre-session-workspace.dto";
 import { OpsInsightsDto } from "./dto/ops-insights.dto";
 import { GetPsychologistWorkspaceQueryDto } from "./dto/get-psychologist-workspace-query.dto";
@@ -50,6 +51,7 @@ import { TelehealthInsightsDto } from "./dto/telehealth-insights.dto";
 import { PatientCareClinicianDto } from "./dto/patient-care-clinician.dto";
 import { SessionSummaryDto } from "./dto/session-summary.dto";
 import { SessionDetailDto } from "./dto/session-detail.dto";
+import { AppointmentStateService } from "./appointment-state.service";
 import type { AppointmentRecord } from "./entities/appointment.record";
 import type { BookingRequestRecord } from "./entities/booking-request.record";
 import type { IntakeDraftRecord } from "./entities/intake-draft.record";
@@ -122,7 +124,10 @@ export class AppointmentsService {
     private readonly prisma: PrismaService,
     private readonly twilioTokenService: TwilioTokenService,
     private readonly usersService: UsersService,
+    private readonly appointmentStateService: AppointmentStateService,
   ) {
+    // State machine shares the in-memory record map when running without a DB.
+    this.appointmentStateService.attachMemoryStore(this.appointments);
     const now = new Date();
     const openApptStart = new Date(now.getTime() + 15 * 60 * 1000);
     const lockedApptStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
@@ -446,8 +451,12 @@ export class AppointmentsService {
       if (appointment.status === "cancelled") {
         throw new ConflictException("Appointment is already cancelled");
       }
-      const next: AppointmentRecord = { ...appointment, status: "cancelled" };
-      await this.saveAppointment(next);
+      const next = await this.appointmentStateService.transition(
+        appointment.appointmentId,
+        "cancelled",
+        { userId: user.sub, role: user.role },
+        { reason: "patient_or_ops_cancel" },
+      );
       await this.auditService.recordEvent({
         actorUserId: user.sub,
         actorRole: user.role,
@@ -709,6 +718,17 @@ export class AppointmentsService {
       identity: user.sub,
       role: user.role,
     });
+
+    // First successful join flips scheduled → in_progress (idempotent across
+    // devices/tabs); the state machine records history + journey milestones.
+    if (appointment.status === "scheduled") {
+      await this.appointmentStateService.transitionIfNeeded(
+        appointment.appointmentId,
+        "in_progress",
+        { userId: user.sub, role: user.role },
+        { reason: "join_session", metadata: { channel: dto.channel } },
+      );
+    }
 
     await this.auditService.recordEvent({
       actorUserId: user.sub,
@@ -1199,6 +1219,30 @@ export class AppointmentsService {
     upcoming.sort((x, y) => new Date(x.scheduledStartAt).getTime() - new Date(y.scheduledStartAt).getTime());
     past.sort((x, y) => new Date(y.scheduledStartAt).getTime() - new Date(x.scheduledStartAt).getTime());
     return { upcoming, past };
+  }
+
+  /**
+   * Next upcoming session with a join-window snapshot for the consolidated
+   * patient dashboard. Read-only: unlike `getSessionWindow`, this never
+   * records analytics events as a side effect.
+   */
+  async getNextSessionForPatient(user: AuthJwtPayload): Promise<PatientNextSessionDto | null> {
+    const list = await this.getPatientAppointmentsList(user, user.sub);
+    const nowMs = Date.now();
+    const next =
+      list.upcoming.find((a) => new Date(a.scheduledStartAt).getTime() > nowMs) ?? list.upcoming[0] ?? null;
+    if (!next) return null;
+
+    const record = await this.getAppointmentById(next.appointmentId);
+    const window: PatientNextSessionDto["window"] = record
+      ? {
+          status: this.computeWindowStatus(record),
+          opensAt: record.chatWindowOpenAt,
+          closesAt: record.chatWindowCloseAt,
+        }
+      : { status: "locked", opensAt: next.scheduledStartAt, closesAt: next.scheduledEndAt };
+
+    return { ...next, window };
   }
 
   async getMoodCheckins(user: AuthJwtPayload, patientId: string, limit = 14): Promise<MoodCheckinsListResponseDto> {
@@ -2290,6 +2334,9 @@ export class AppointmentsService {
       status: row.status as AppointmentRecord["status"],
       chatWindowOpenAt: row.chat_window_open_at.toISOString(),
       chatWindowCloseAt: row.chat_window_close_at.toISOString(),
+      actualStartedAt: row.actual_started_at?.toISOString() ?? null,
+      actualEndedAt: row.actual_ended_at?.toISOString() ?? null,
+      version: row.version,
     };
   }
 
@@ -2330,6 +2377,9 @@ export class AppointmentsService {
       status: row.status as AppointmentRecord["status"],
       chatWindowOpenAt: row.chat_window_open_at.toISOString(),
       chatWindowCloseAt: row.chat_window_close_at.toISOString(),
+      actualStartedAt: row.actual_started_at?.toISOString() ?? null,
+      actualEndedAt: row.actual_ended_at?.toISOString() ?? null,
+      version: row.version,
     }));
   }
 

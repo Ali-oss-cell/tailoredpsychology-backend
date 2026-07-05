@@ -14,6 +14,7 @@ import { CoreModule } from "./modules/core/core.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ExportsModule } from "./modules/exports/exports.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { PatientPortalModule } from "./modules/patient-portal/patient-portal.module";
 import { PsychologistNotesModule } from "./modules/psychologist-notes/psychologist-notes.module";
 import { ResourcesModule } from "./modules/resources/resources.module";
 import { SecurityIncidentsModule } from "./modules/security-incidents/security-incidents.module";
@@ -33,6 +34,7 @@ import { UsersModule } from "./modules/users/users.module";
     AnalyticsModule,
     BillingModule,
     PaymentsModule,
+    PatientPortalModule,
     ExportsModule,
     ResourcesModule,
     PsychologistNotesModule,

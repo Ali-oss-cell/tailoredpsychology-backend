@@ -14,6 +14,7 @@ import type { Server, Socket } from "socket.io";
 
 import type { AuthJwtPayload } from "../auth/interfaces/auth-jwt-payload.interface";
 import { getAllowedCorsOrigins } from "../../cors.config";
+import { AppointmentStateService } from "./appointment-state.service";
 import { AppointmentsService } from "./appointments.service";
 import { CreateChatMessageDto } from "./dto/create-chat-message.dto";
 
@@ -40,7 +41,14 @@ export class AppointmentsGateway implements OnGatewayConnection, OnGatewayDiscon
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly appointmentsService: AppointmentsService,
-  ) {}
+    private readonly appointmentStateService: AppointmentStateService,
+  ) {
+    // Real-time state propagation: anyone in the appointment room (join screen,
+    // pre-session chat) sees status flips without polling.
+    this.appointmentStateService.onTransition((event) => {
+      this.server?.to(event.appointmentId).emit("appointment:state", event);
+    });
+  }
 
   handleConnection(client: Socket): void {
     try {
