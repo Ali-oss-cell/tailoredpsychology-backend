@@ -16,6 +16,7 @@ import { ExportsModule } from "./modules/exports/exports.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PatientPortalModule } from "./modules/patient-portal/patient-portal.module";
 import { PsychologistNotesModule } from "./modules/psychologist-notes/psychologist-notes.module";
+import { PsychologistPortalModule } from "./modules/psychologist-portal/psychologist-portal.module";
 import { ResourcesModule } from "./modules/resources/resources.module";
 import { SecurityIncidentsModule } from "./modules/security-incidents/security-incidents.module";
 import { ServicesModule } from "./modules/services/services.module";
@@ -35,6 +36,7 @@ import { UsersModule } from "./modules/users/users.module";
     BillingModule,
     PaymentsModule,
     PatientPortalModule,
+    PsychologistPortalModule,
     ExportsModule,
     ResourcesModule,
     PsychologistNotesModule,

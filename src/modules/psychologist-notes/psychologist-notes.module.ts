@@ -11,5 +11,6 @@ import { PsychologistNotesService } from "./psychologist-notes.service";
   imports: [UsersModule, AppointmentsModule, AuditModule],
   controllers: [PsychologistNotesController, ClinicianAvatarPublicController],
   providers: [PsychologistNotesService],
+  exports: [PsychologistNotesService],
 })
 export class PsychologistNotesModule {}

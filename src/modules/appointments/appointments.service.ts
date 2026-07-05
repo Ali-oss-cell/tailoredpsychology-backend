@@ -1245,6 +1245,19 @@ export class AppointmentsService {
     return { ...next, window };
   }
 
+  /** Read-only join window snapshot for dashboard cards (no analytics side effects). */
+  async getSessionWindowSnapshot(sessionId: string): Promise<PatientNextSessionDto["window"]> {
+    const record = await this.getAppointmentById(sessionId);
+    if (!record) {
+      return { status: "locked", opensAt: new Date().toISOString(), closesAt: new Date().toISOString() };
+    }
+    return {
+      status: this.computeWindowStatus(record),
+      opensAt: record.chatWindowOpenAt,
+      closesAt: record.chatWindowCloseAt,
+    };
+  }
+
   async getMoodCheckins(user: AuthJwtPayload, patientId: string, limit = 14): Promise<MoodCheckinsListResponseDto> {
     await this.assertPatientClinicalReadAccess(user, patientId);
     const cap = Math.min(Math.max(limit, 1), 100);
