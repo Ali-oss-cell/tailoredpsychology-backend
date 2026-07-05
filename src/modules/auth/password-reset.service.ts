@@ -1,10 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { AuditService } from "../audit/audit.service";
 import { DatabaseService } from "../core/database.service";
+import { MailService } from "../mail/mail.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
 import { ForgotPasswordResponseDto } from "./dto/forgot-password-response.dto";
@@ -20,6 +21,7 @@ type ResetTokenRecord = {
 
 @Injectable()
 export class PasswordResetService {
+  private readonly logger = new Logger(PasswordResetService.name);
   private readonly inMemory = new Map<string, ResetTokenRecord>();
 
   constructor(
@@ -28,6 +30,7 @@ export class PasswordResetService {
     private readonly databaseService: DatabaseService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   private hashToken(raw: string): string {
@@ -88,10 +91,25 @@ export class PasswordResetService {
     });
 
     const isProd = this.configService.get<string>("NODE_ENV") === "production";
-    const emailConfigured = Boolean(this.configService.get<string>("SMTP_HOST")?.trim());
+    const emailConfigured = this.mailService.isConfigured();
     if (!isProd || !emailConfigured) {
       return { message, devResetUrl: resetUrl };
     }
+
+    try {
+      await this.mailService.sendPasswordResetEmail(normalized, resetUrl);
+    } catch {
+      this.logger.error(`Password reset email failed for ${normalized}`);
+      this.auditService.recordEvent({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: "auth_password_reset_email_failed",
+        targetType: "auth",
+        targetId: user.id,
+        metadata: { email: normalized },
+      });
+    }
+
     return { message };
   }
 

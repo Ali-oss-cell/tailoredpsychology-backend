@@ -64,6 +64,7 @@ Edit `.env` and set:
 - `AUTH_JWT_SECRET`
 - `COOKIE_DOMAIN` (set to `.yourdomain.com` so frontend + API subdomains can share role cookie)
 - `CORS_ORIGINS` (optional; comma-separated `https://` site origins — defaults from `BASE_DOMAIN` if omitted)
+- **SMTP (password reset):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` — see [SMTP setup](#8-smtp-password-reset) below
 - **Twilio Video (telehealth):** `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET` — see [Twilio Video setup](#7-twilio-video-telehealth) below
 - optional scheduler settings
 
@@ -141,6 +142,30 @@ docker compose --env-file .env -f docker-compose.traefik.yml exec backend npm ru
 
 Default accounts: `video.patient@clink.test` / `video.psych@clink.test` — password `VideoTest123!`  
 Session URL: `https://<BASE_DOMAIN>/video-session/appt_video_test`
+
+## 8) SMTP (password reset)
+
+Production forgot-password emails require SMTP. Set in `deploy/.env`:
+
+```env
+PUBLIC_APP_URL=https://tailoredpsychology.com.au
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+SMTP_FROM=Tailored Psychology <noreply@tailoredpsychology.com.au>
+```
+
+When `NODE_ENV=production` and `SMTP_HOST` is set, the backend sends a reset link email. Without SMTP, dev/staging responses may include `devResetUrl` in the API (never shown in production frontend builds).
+
+After changing SMTP settings:
+
+```bash
+docker compose --env-file .env -f docker-compose.traefik.yml up -d --build backend
+```
+
+Verify: request reset at `https://<BASE_DOMAIN>/forgot-password` for a real account and confirm the email arrives.
 
 ## 5) Deploy updates
 

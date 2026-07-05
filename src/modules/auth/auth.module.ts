@@ -6,6 +6,7 @@ import { PassportModule } from "@nestjs/passport";
 import { AppointmentsModule } from "../appointments/appointments.module";
 import { AnalyticsModule } from "../analytics/analytics.module";
 import { AuditModule } from "../audit/audit.module";
+import { MailModule } from "../mail/mail.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { UsersModule } from "../users/users.module";
 import { AuthController } from "./auth.controller";
@@ -24,6 +25,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
 @Module({
   imports: [
     ConfigModule,
+    MailModule,
     AuditModule,
     AnalyticsModule,
     AppointmentsModule,
