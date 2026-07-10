@@ -16,6 +16,12 @@ export class CurrentUserDto {
   @ApiProperty({ example: "Patient Demo" })
   displayName!: string;
 
+  @ApiProperty({
+    description: "ISO timestamp when the user record was last updated.",
+    example: "2026-07-10T08:00:00.000Z",
+  })
+  updatedAt!: string;
+
   @ApiProperty({ enum: USER_ROLES, example: "patient" })
   role!: UserRole;
 

@@ -9,6 +9,8 @@ export type UserRecord = {
   email: string;
   displayName: string;
   role: UserRole;
+  /** ISO timestamp from `users.updated_at`. */
+  updatedAt: string;
   /** Password hash from `password-crypto.util` (Argon2id; legacy scrypt tolerated for migration). */
   password: string;
   /** Legacy stub field; patient completion is derived from intake draft + display name in AuthService. */

@@ -15,12 +15,19 @@ import type {
   UpdateUserProfileInput,
 } from "./users.repository";
 
+const STUB_UPDATED_AT = "2026-01-15T10:00:00.000Z";
+
+function touchUpdatedAt(user: UserRecord): void {
+  user.updatedAt = new Date().toISOString();
+}
+
 const MOCK_USERS: UserRecord[] = [
   {
     id: "user_patient_001",
     email: "patient@clink.test",
     displayName: "Patient Demo",
     role: "patient",
+    updatedAt: STUB_UPDATED_AT,
     password:
       "$argon2id$v=19$m=19456,t=2,p=1$SAnCqXx//k8DBFUjbtMAbQ$kxTakLr/H8P4TzdT33/ylXKNmojL7jUvVenA4SJuS4Q",
     accountOnboardingComplete: true,
@@ -39,6 +46,7 @@ const MOCK_USERS: UserRecord[] = [
     email: "psychologist@clink.test",
     displayName: "Psychologist Demo",
     role: "psychologist",
+    updatedAt: STUB_UPDATED_AT,
     password:
       "$argon2id$v=19$m=19456,t=2,p=1$OLypc/hC+/QU3O/QcpDvCg$O0Ca5AP+G8KQ1z7x4lFzfaBRGZPCF+k7YmGTe4rXTLM",
     accountOnboardingComplete: true,
@@ -54,6 +62,7 @@ const MOCK_USERS: UserRecord[] = [
     email: "psychologist2@clink.test",
     displayName: "Psychologist Two Demo",
     role: "psychologist",
+    updatedAt: STUB_UPDATED_AT,
     password:
       "$argon2id$v=19$m=19456,t=2,p=1$OLypc/hC+/QU3O/QcpDvCg$O0Ca5AP+G8KQ1z7x4lFzfaBRGZPCF+k7YmGTe4rXTLM",
     accountOnboardingComplete: true,
@@ -69,6 +78,7 @@ const MOCK_USERS: UserRecord[] = [
     email: "patient2@clink.test",
     displayName: "Patient Two Demo",
     role: "patient",
+    updatedAt: STUB_UPDATED_AT,
     password:
       "$argon2id$v=19$m=19456,t=2,p=1$NoxgV7oyri7dMPWSkOC9EA$6bldXm4Ifppti/hGPtFWIP5WrMV1s6Lw7VUz2WM4w20",
     accountOnboardingComplete: true,
@@ -80,6 +90,7 @@ const MOCK_USERS: UserRecord[] = [
     email: "manager@clink.test",
     displayName: "Practice Manager Demo",
     role: "practice_manager",
+    updatedAt: STUB_UPDATED_AT,
     password:
       "$argon2id$v=19$m=19456,t=2,p=1$qpjuJy+QuAk7/4AnQY4pLQ$Epi7GRCpXav3lxNg9/RMMtal7plwq6upBy0Ct83c2YM",
     accountOnboardingComplete: true,
@@ -89,6 +100,7 @@ const MOCK_USERS: UserRecord[] = [
     email: "admin@clink.test",
     displayName: "Admin Demo",
     role: "admin",
+    updatedAt: STUB_UPDATED_AT,
     password:
       "$argon2id$v=19$m=19456,t=2,p=1$OXkJN5Y18gSO+ggmYG85yQ$u5PIeWNI4nBBgv1gltew4MYy5lburJ7ZEpQy+D1beYs",
     accountOnboardingComplete: true,
@@ -164,6 +176,7 @@ export class UsersStubRepository implements UsersRepository {
         suburb: demographicsPatch.suburb !== undefined ? demographicsPatch.suburb : demographicsBase.suburb,
       };
     }
+    touchUpdatedAt(user);
   }
 
   async updatePassword(id: string, password: string): Promise<void> {
@@ -172,6 +185,7 @@ export class UsersStubRepository implements UsersRepository {
       return;
     }
     user.password = password;
+    touchUpdatedAt(user);
   }
 
   async markAccountOnboardingComplete(id: string): Promise<void> {
@@ -180,6 +194,7 @@ export class UsersStubRepository implements UsersRepository {
       return;
     }
     user.accountOnboardingComplete = true;
+    touchUpdatedAt(user);
   }
 
   async createPatientUser(input: { email: string; displayName: string; password: string }): Promise<UserRecord> {
@@ -189,6 +204,7 @@ export class UsersStubRepository implements UsersRepository {
       email: normalizedEmail,
       displayName: input.displayName.trim(),
       role: "patient",
+      updatedAt: new Date().toISOString(),
       password: input.password,
       accountOnboardingComplete: false,
       patientContactProfile: emptyPatientContactProfile(),
@@ -213,6 +229,7 @@ export class UsersStubRepository implements UsersRepository {
       email: normalizedEmail,
       displayName: input.displayName.trim(),
       role: "psychologist",
+      updatedAt: new Date().toISOString(),
       password: input.passwordHash,
       accountOnboardingComplete: true,
       psychologistAdminProfile: {
@@ -238,6 +255,7 @@ export class UsersStubRepository implements UsersRepository {
       specialties: input.specialties.map((item) => item.trim()).filter(Boolean),
       status: input.status,
     };
+    touchUpdatedAt(user);
     return user;
   }
 

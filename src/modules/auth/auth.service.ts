@@ -309,6 +309,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       displayName: user.displayName,
+      updatedAt: user.updatedAt,
       accountSetupComplete,
     };
     if (user.role === "patient") {

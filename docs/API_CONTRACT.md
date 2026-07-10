@@ -75,7 +75,7 @@ For future domain codes, include:
 
 - **Status:** `canonical`
 - **Auth:** `Authorization: Bearer <token>`
-- **Response DTO:** `CurrentUserDto` (for `patient` role includes `patientContactProfile`: phone, preferred contact channel, accessibility notes, emergency contact)
+- **Response DTO:** `CurrentUserDto` (includes `updatedAt`; for `patient` role includes `patientContactProfile`: phone, preferred contact channel, accessibility notes, emergency contact)
 - **Error cases:**
   - `401` missing/invalid/expired token
 - **Retryability:** safe read endpoint.

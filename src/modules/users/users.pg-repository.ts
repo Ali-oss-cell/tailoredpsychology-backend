@@ -46,6 +46,7 @@ function mapPrismaUser(row: UserWithProfiles): UserRecord {
     role,
     password: row.password,
     accountOnboardingComplete: row.account_onboarding_complete,
+    updatedAt: row.updated_at.toISOString(),
   };
   if (role === "patient") {
     const p = row.patient_profiles ?? null;
