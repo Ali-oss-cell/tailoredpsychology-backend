@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
+
+import { bookingThrottleOptions } from "../../common/throttle/throttle.config";
 
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -48,6 +51,7 @@ export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
   @Get("clinicians/availability")
+  @Throttle(bookingThrottleOptions())
   @ApiOperation({ summary: "Get clinician slots for a date window" })
   @ApiOkResponse({ type: [ClinicianAvailabilityResponseDto] })
   async getAvailability(@Query() query: GetClinicianAvailabilityQueryDto): Promise<ClinicianAvailabilityResponseDto[]> {
@@ -55,6 +59,7 @@ export class AppointmentsController {
   }
 
   @Post("booking-requests")
+  @Throttle(bookingThrottleOptions())
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create a booking request for selected slot" })
@@ -64,6 +69,15 @@ export class AppointmentsController {
     @Body() dto: CreateBookingRequestDto,
   ): Promise<BookingRequestCreatedResponseDto> {
     return this.appointmentsService.createBookingRequest(user, dto);
+  }
+
+  @Get("booking-requests/mine/active")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get the patient's active booking request awaiting payment, if any" })
+  @ApiOkResponse({ type: BookingRequestStatusDto })
+  getActivePatientBookingRequest(@CurrentUser() user: AuthJwtPayload): Promise<BookingRequestStatusDto> {
+    return this.appointmentsService.getActivePatientBookingRequest(user);
   }
 
   @Get("booking-requests/:id/status")
@@ -198,6 +212,7 @@ export class AppointmentsController {
   }
 
   @Post("patients/:id/intake-delta")
+  @Throttle(bookingThrottleOptions())
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Save intake draft delta with version conflict protection" })
@@ -211,6 +226,7 @@ export class AppointmentsController {
   }
 
   @Post("patients/:id/intake-draft/commit")
+  @Throttle(bookingThrottleOptions())
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Commit current intake draft version after final review/submission" })

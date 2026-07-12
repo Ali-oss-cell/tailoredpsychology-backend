@@ -832,6 +832,28 @@ export class AppointmentsService {
       });
     }
 
+    return this.toBookingRequestStatusDto(booking);
+  }
+
+  async getActivePatientBookingRequest(user: AuthJwtPayload): Promise<BookingRequestStatusDto> {
+    if (user.role !== "patient") {
+      throw new ForbiddenException("Only patients can access active booking requests");
+    }
+    const bookings = await this.listBookingRequests();
+    const active = bookings
+      .filter(
+        (booking) =>
+          booking.patientId === user.sub &&
+          (booking.state === "pending_payment" || booking.state === "payment_abandoned"),
+      )
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+    if (!active) {
+      throw new NotFoundException("No active booking request");
+    }
+    return this.toBookingRequestStatusDto(active);
+  }
+
+  private toBookingRequestStatusDto(booking: BookingRequestRecord): BookingRequestStatusDto {
     return {
       bookingRequestId: booking.bookingRequestId,
       state: booking.state,

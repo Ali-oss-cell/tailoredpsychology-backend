@@ -175,4 +175,34 @@ describe("Booking requests (e2e)", () => {
 
     expect(status.status).toBe(403);
   });
+
+  it("GET /api/booking-requests/mine/active returns pending payment booking for owner", async () => {
+    const token = await loginAndGetToken(app, "patient@clink.test", "Patient123!");
+
+    const create = await request(app.getHttpServer())
+      .post("/api/booking-requests")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        clinicianId: "clinician_004",
+        slotId: "clinician_004_2026-05-15_0900",
+        appointmentDate: "2026-05-15",
+      });
+    expect(create.status).toBe(201);
+
+    const active = await request(app.getHttpServer())
+      .get("/api/booking-requests/mine/active")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(active.status).toBe(200);
+    expect(active.body.bookingRequestId).toBe(create.body.bookingRequestId);
+    expect(active.body.state).toBe("pending_payment");
+  });
+
+  it("GET /api/booking-requests/mine/active returns 404 when none pending", async () => {
+    const token = await loginAndGetToken(app, "admin@clink.test", "Admin123!");
+    const response = await request(app.getHttpServer())
+      .get("/api/booking-requests/mine/active")
+      .set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(403);
+  });
 });
