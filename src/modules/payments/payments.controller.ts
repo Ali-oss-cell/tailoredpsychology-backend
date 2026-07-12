@@ -1,5 +1,6 @@
 import { Controller, Headers, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import type { RawBodyRequest } from "@nestjs/common";
 import type { Request } from "express";
 
@@ -27,6 +28,7 @@ export class PaymentsController {
   }
 
   @Post("stripe/webhook")
+  @SkipThrottle()
   @ApiOperation({ summary: "Stripe webhook endpoint (raw body + signature verification)" })
   handleStripeWebhook(
     @Req() req: RawBodyRequest<Request>,

@@ -1,6 +1,9 @@
 import { Body, Controller, Get, Patch, Post, Res, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import type { Response } from "express";
+
+import { authThrottleOptions } from "../../common/throttle/throttle.config";
 
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user.decorator";
@@ -50,6 +53,7 @@ export class AuthController {
   }
 
   @Post("login")
+  @Throttle(authThrottleOptions())
   @ApiOperation({ summary: "Authenticate user and issue bearer token" })
   @ApiOkResponse({ type: AuthSessionDto })
   async login(@Body() dto: LoginRequestDto, @Res({ passthrough: true }) response: Response): Promise<AuthSessionDto> {
@@ -59,6 +63,7 @@ export class AuthController {
   }
 
   @Post("register")
+  @Throttle(authThrottleOptions())
   @ApiOperation({ summary: "Register a new patient account and issue bearer token" })
   @ApiOkResponse({ type: AuthSessionDto })
   async register(@Body() dto: RegisterRequestDto, @Res({ passthrough: true }) response: Response): Promise<AuthSessionDto> {
@@ -68,6 +73,7 @@ export class AuthController {
   }
 
   @Post("forgot-password")
+  @Throttle(authThrottleOptions())
   @ApiOperation({ summary: "Request a password reset link (always returns generic success message)" })
   @ApiOkResponse({ type: ForgotPasswordResponseDto })
   forgotPassword(@Body() dto: ForgotPasswordRequestDto): Promise<ForgotPasswordResponseDto> {
@@ -75,6 +81,7 @@ export class AuthController {
   }
 
   @Post("reset-password")
+  @Throttle(authThrottleOptions())
   @ApiOperation({ summary: "Complete password reset using token from email link" })
   @ApiOkResponse({
     schema: {

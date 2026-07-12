@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 import { AppModule } from "./app.module";
 import { buildCorsOptions } from "./cors.config";
+import { shouldTrustProxy } from "./common/throttle/throttle.config";
 import { SocketIoAdapter } from "./socket-io.adapter";
 
 async function bootstrap() {
@@ -13,6 +14,10 @@ async function bootstrap() {
   });
 
   app.useWebSocketAdapter(new SocketIoAdapter(app));
+
+  if (shouldTrustProxy()) {
+    app.getHttpAdapter().getInstance().set("trust proxy", true);
+  }
 
   app.setGlobalPrefix("api");
   app.useGlobalPipes(
